@@ -22,8 +22,8 @@ export default async function AdminPage() {
     );
   }
 
-  const stats = getStats();
-  const submissions = listSubmissions();
+  const stats = await getStats();
+  const submissions = await listSubmissions();
 
   return (
     <section className="section">
@@ -148,7 +148,7 @@ export default async function AdminPage() {
                     <Link href={`/lacak?code=${s.code}`} className="btn btn-outline btn-sm">
                       Lihat Detail
                     </Link>
-                    {s.signed_path && (
+                    {s.has_signed && (
                       <a
                         href={`/api/signed/${s.id}`}
                         target="_blank"

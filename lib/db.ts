@@ -1,6 +1,4 @@
-import { DatabaseSync } from "node:sqlite";
-import path from "node:path";
-import fs from "node:fs";
+import { Pool } from "pg";
 
 export type SubmissionStatus = "antrean" | "ttd" | "ditolak";
 
@@ -14,68 +12,68 @@ export interface Submission {
   jenis: string;
   keperluan: string;
   file_name: string;
-  file_path: string;
+  file_type: string | null;
   status: SubmissionStatus;
   ai_skor: number;
   ai_ringkasan: string | null;
   antrian: number | null;
   catatan: string | null;
   signed_at: string | null;
-  signed_path: string | null;
+  has_file: boolean;
+  has_signed: boolean;
   created_at: string;
   updated_at: string;
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_PATH = path.join(DATA_DIR, "edusun.db");
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-function createDb(): DatabaseSync {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  const db = new DatabaseSync(DB_PATH);
-  db.exec("PRAGMA busy_timeout = 15000;");
-  db.exec("PRAGMA journal_mode = WAL;");
-  db.exec("PRAGMA synchronous = NORMAL;");
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS submissions (
-      id TEXT PRIMARY KEY,
-      code TEXT UNIQUE NOT NULL,
-      nama TEXT NOT NULL,
-      nik TEXT NOT NULL,
-      whatsapp TEXT NOT NULL,
-      email TEXT,
-      jenis TEXT NOT NULL,
-      keperluan TEXT NOT NULL,
-      file_name TEXT NOT NULL,
-      file_path TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'antrean',
-      ai_skor INTEGER NOT NULL DEFAULT 0,
-      ai_ringkasan TEXT,
-      antrian INTEGER,
-      catatan TEXT,
-      signed_at TEXT,
-      signed_path TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-  `);
-  const cols = db
-    .prepare("PRAGMA table_info(submissions)")
-    .all() as { name: string }[];
-  if (!cols.some((c) => c.name === "signed_path")) {
-    db.exec("ALTER TABLE submissions ADD COLUMN signed_path TEXT");
-  }
-  return db;
-}
+const globalForDb = globalThis as unknown as { __edusunPool?: Pool };
 
-const globalForDb = globalThis as unknown as {
-  __edusunDb?: DatabaseSync;
-};
-
-export const db: DatabaseSync = globalForDb.__edusunDb ?? createDb();
+export const db: Pool = globalForDb.__edusunPool ?? pool;
 
 if (process.env.NODE_ENV !== "production") {
-  globalForDb.__edusunDb = db;
+  globalForDb.__edusunPool = db;
 }
+
+let schemaReady: Promise<void> | null = null;
+
+function ensureSchema(): Promise<void> {
+  if (!schemaReady) {
+    schemaReady = db
+      .query(
+        `CREATE TABLE IF NOT EXISTS submissions (
+          id TEXT PRIMARY KEY,
+          code TEXT UNIQUE NOT NULL,
+          nama TEXT NOT NULL,
+          nik TEXT NOT NULL,
+          whatsapp TEXT NOT NULL,
+          email TEXT,
+          jenis TEXT NOT NULL,
+          keperluan TEXT NOT NULL,
+          file_name TEXT NOT NULL,
+          file_type TEXT,
+          file_data BYTEA,
+          status TEXT NOT NULL DEFAULT 'antrean',
+          ai_skor INTEGER NOT NULL DEFAULT 0,
+          ai_ringkasan TEXT,
+          antrian INTEGER,
+          catatan TEXT,
+          signed_at TEXT,
+          signed_data BYTEA,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`
+      )
+      .then(() => {});
+  }
+  return schemaReady;
+}
+
+const METADATA_COLS = `id, code, nama, nik, whatsapp, email, jenis, keperluan,
+  file_name, file_type, status, ai_skor, ai_ringkasan, antrian, catatan,
+  signed_at, created_at, updated_at,
+  (file_data IS NOT NULL) AS has_file,
+  (signed_data IS NOT NULL) AS has_signed`;
 
 function mapRow(row: Record<string, unknown>): Submission {
   return {
@@ -88,49 +86,90 @@ function mapRow(row: Record<string, unknown>): Submission {
     jenis: String(row.jenis),
     keperluan: String(row.keperluan),
     file_name: String(row.file_name),
-    file_path: String(row.file_path),
+    file_type: row.file_type ? String(row.file_type) : null,
     status: String(row.status) as SubmissionStatus,
     ai_skor: Number(row.ai_skor),
     ai_ringkasan: row.ai_ringkasan ? String(row.ai_ringkasan) : null,
     antrian: row.antrian == null ? null : Number(row.antrian),
     catatan: row.catatan ? String(row.catatan) : null,
     signed_at: row.signed_at ? String(row.signed_at) : null,
-    signed_path: row.signed_path ? String(row.signed_path) : null,
+    has_file: Boolean(row.has_file),
+    has_signed: Boolean(row.has_signed),
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   };
 }
 
-export function getTotalCount(): number {
-  const row = db.prepare("SELECT COUNT(*) AS c FROM submissions").get() as {
-    c: number;
-  };
-  return row.c;
+export async function getTotalCount(): Promise<number> {
+  await ensureSchema();
+  const r = await db.query("SELECT COUNT(*) AS c FROM submissions");
+  return Number(r.rows[0].c);
 }
 
-export function listSubmissions(
+export async function listSubmissions(
   status?: SubmissionStatus
-): Submission[] {
+): Promise<Submission[]> {
+  await ensureSchema();
   const sql = status
-    ? "SELECT * FROM submissions WHERE status = ? ORDER BY antrian ASC, created_at ASC"
-    : "SELECT * FROM submissions ORDER BY created_at DESC";
-  const stmt = db.prepare(sql);
-  const rows = status ? stmt.all(status) : stmt.all();
-  return (rows as Record<string, unknown>[]).map(mapRow);
+    ? `SELECT ${METADATA_COLS} FROM submissions WHERE status = $1 ORDER BY antrian ASC, created_at ASC`
+    : `SELECT ${METADATA_COLS} FROM submissions ORDER BY created_at DESC`;
+  const r = status ? await db.query(sql, [status]) : await db.query(sql);
+  return (r.rows as Record<string, unknown>[]).map(mapRow);
 }
 
-export function getSubmissionByCode(code: string): Submission | null {
-  const row = db
-    .prepare("SELECT * FROM submissions WHERE code = ?")
-    .get(code) as Record<string, unknown> | undefined;
+export async function getSubmissionByCode(
+  code: string
+): Promise<Submission | null> {
+  await ensureSchema();
+  const r = await db.query(
+    `SELECT ${METADATA_COLS} FROM submissions WHERE code = $1`,
+    [code]
+  );
+  const row = r.rows[0] as Record<string, unknown> | undefined;
   return row ? mapRow(row) : null;
 }
 
-export function getSubmissionById(id: string): Submission | null {
-  const row = db
-    .prepare("SELECT * FROM submissions WHERE id = ?")
-    .get(id) as Record<string, unknown> | undefined;
+export async function getSubmissionById(id: string): Promise<Submission | null> {
+  await ensureSchema();
+  const r = await db.query(
+    `SELECT ${METADATA_COLS} FROM submissions WHERE id = $1`,
+    [id]
+  );
+  const row = r.rows[0] as Record<string, unknown> | undefined;
   return row ? mapRow(row) : null;
+}
+
+export interface FileData {
+  data: Buffer;
+  type: string;
+  name: string;
+}
+
+export async function getFileData(id: string): Promise<FileData | null> {
+  await ensureSchema();
+  const r = await db.query(
+    "SELECT file_data, file_type, file_name FROM submissions WHERE id = $1",
+    [id]
+  );
+  const row = r.rows[0] as
+    | { file_data: Buffer | null; file_type: string | null; file_name: string }
+    | undefined;
+  if (!row || !row.file_data) return null;
+  return {
+    data: row.file_data,
+    type: row.file_type ?? "application/pdf",
+    name: row.file_name,
+  };
+}
+
+export async function getSignedData(id: string): Promise<Buffer | null> {
+  await ensureSchema();
+  const r = await db.query(
+    "SELECT signed_data FROM submissions WHERE id = $1",
+    [id]
+  );
+  const row = r.rows[0] as { signed_data: Buffer | null } | undefined;
+  return row && row.signed_data ? row.signed_data : null;
 }
 
 export interface NewSubmission {
@@ -143,89 +182,102 @@ export interface NewSubmission {
   jenis: string;
   keperluan: string;
   file_name: string;
-  file_path: string;
+  file_type: string;
+  file_data: Buffer;
   ai_skor: number;
   ai_ringkasan: string;
   antrian: number;
 }
 
-export function insertSubmission(s: NewSubmission): void {
+export async function insertSubmission(s: NewSubmission): Promise<void> {
+  await ensureSchema();
   const now = new Date().toISOString();
-  db.prepare(
+  await db.query(
     `INSERT INTO submissions (
       id, code, nama, nik, whatsapp, email, jenis, keperluan,
-      file_name, file_path, status, ai_skor, ai_ringkasan, antrian,
+      file_name, file_type, file_data, status, ai_skor, ai_ringkasan, antrian,
       created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'antrean', ?, ?, ?, ?, ?)`
-  ).run(
-    s.id,
-    s.code,
-    s.nama,
-    s.nik,
-    s.whatsapp,
-    s.email,
-    s.jenis,
-    s.keperluan,
-    s.file_name,
-    s.file_path,
-    s.ai_skor,
-    s.ai_ringkasan,
-    s.antrian,
-    now,
-    now
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'antrean', $12, $13, $14, $15, $16)`,
+    [
+      s.id,
+      s.code,
+      s.nama,
+      s.nik,
+      s.whatsapp,
+      s.email,
+      s.jenis,
+      s.keperluan,
+      s.file_name,
+      s.file_type,
+      s.file_data,
+      s.ai_skor,
+      s.ai_ringkasan,
+      s.antrian,
+      now,
+      now,
+    ]
   );
 }
 
-export function signSubmission(id: string, signedPath: string): void {
+export async function signSubmission(
+  id: string,
+  signedData: Buffer
+): Promise<void> {
+  await ensureSchema();
   const now = new Date().toISOString();
-  db.prepare(
+  await db.query(
     `UPDATE submissions
-     SET status = 'ttd', signed_at = ?, signed_path = ?, updated_at = ?
-     WHERE id = ?`
-  ).run(now, signedPath, now, id);
+     SET status = 'ttd', signed_at = $1, signed_data = $2, updated_at = $3
+     WHERE id = $4`,
+    [now, signedData, now, id]
+  );
 }
 
-export function rejectSubmission(id: string, catatan: string): void {
+export async function rejectSubmission(
+  id: string,
+  catatan: string
+): Promise<void> {
+  await ensureSchema();
   const now = new Date().toISOString();
-  db.prepare(
+  await db.query(
     `UPDATE submissions
-     SET status = 'ditolak', catatan = ?, updated_at = ?
-     WHERE id = ?`
-  ).run(catatan, now, id);
+     SET status = 'ditolak', catatan = $1, updated_at = $2
+     WHERE id = $3`,
+    [catatan, now, id]
+  );
 }
 
-export function getQueuePosition(submission: Submission): number {
+export async function getQueuePosition(
+  submission: Submission
+): Promise<number> {
   if (submission.status !== "antrean") return 0;
-  const row = db
-    .prepare(
-      "SELECT COUNT(*) AS c FROM submissions WHERE status = 'antrean' AND antrian <= ?"
-    )
-    .get(submission.antrian) as { c: number };
-  return row.c;
+  await ensureSchema();
+  const r = await db.query(
+    "SELECT COUNT(*) AS c FROM submissions WHERE status = 'antrean' AND antrian <= $1",
+    [submission.antrian]
+  );
+  return Number(r.rows[0].c);
 }
 
-export function getAntreanCount(): number {
-  const row = db
-    .prepare("SELECT COUNT(*) AS c FROM submissions WHERE status = 'antrean'")
-    .get() as { c: number };
-  return row.c;
-}
-
-export function getStats(): {
+export async function getStats(): Promise<{
   total: number;
   antrean: number;
   ttd: number;
   ditolak: number;
-} {
-  const rows = db
-    .prepare("SELECT status, COUNT(*) AS c FROM submissions GROUP BY status")
-    .all() as { status: string; c: number }[];
-  const stats = { total: 0, antrean: 0, ttd: 0, ditolak: 0 };
-  for (const r of rows) {
-    stats.total += r.c;
-    if (r.status === "antrean") stats.antrean = r.c;
-    if (r.status === "ttd") stats.ttd = r.c;
-    if (r.status === "ditolak") stats.ditolak = r.c;
-  }
-  return stats;
+}> {
+  await ensureSchema();
+  const r = await db.query(
+    `SELECT COUNT(*) AS total,
+       COUNT(*) FILTER (WHERE status = 'antrean') AS antrean,
+       COUNT(*) FILTER (WHERE status = 'ttd') AS ttd,
+       COUNT(*) FILTER (WHERE status = 'ditolak') AS ditolak
+     FROM submissions`
+  );
+  const row = r.rows[0] as Record<string, unknown>;
+  return {
+    total: Number(row.total),
+    antrean: Number(row.antrean),
+    ttd: Number(row.ttd),
+    ditolak: Number(row.ditolak),
+  };
 }

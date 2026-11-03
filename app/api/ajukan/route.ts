@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "node:path";
-import fs from "node:fs/promises";
 import { insertSubmission, getTotalCount } from "@/lib/db";
 import { assessSubmission } from "@/lib/ai";
-import {
-  generateTrackingCode,
-  generateId,
-} from "@/lib/util";
+import { generateTrackingCode, generateId } from "@/lib/util";
 
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const MAX_SIZE = 10 * 1024 * 1024;
-const ALLOWED_EXT = [".pdf", ".jpg", ".jpeg", ".png"];
+
+const CONTENT_TYPES: Record<string, string> = {
+  ".pdf": "application/pdf",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+};
 
 export const runtime = "nodejs";
 
@@ -41,8 +41,10 @@ export async function POST(request: NextRequest) {
   }
 
   const fileObj = file as File;
-  const ext = path.extname(fileObj.name).toLowerCase();
-  if (!ALLOWED_EXT.includes(ext)) {
+  const ext = (fileObj.name.split(".").pop() ?? "").toLowerCase();
+  const fileType = CONTENT_TYPES[`.${ext}`];
+
+  if (!fileType) {
     return NextResponse.json(
       { error: "Format file harus PDF, JPG, atau PNG." },
       { status: 400 }
@@ -74,37 +76,32 @@ export async function POST(request: NextRequest) {
 
   const id = generateId();
   const code = generateTrackingCode();
-  const storedName = `${id}${ext}`;
-  const filePath = path.join(UPLOAD_DIR, storedName);
+  const buffer = Buffer.from(await fileObj.arrayBuffer());
+  const antrian = (await getTotalCount()) + 1;
 
   try {
-    await fs.mkdir(UPLOAD_DIR, { recursive: true });
-    const buffer = Buffer.from(await fileObj.arrayBuffer());
-    await fs.writeFile(filePath, buffer);
+    await insertSubmission({
+      id,
+      code,
+      nama,
+      nik,
+      whatsapp,
+      email,
+      jenis,
+      keperluan,
+      file_name: fileObj.name,
+      file_type: fileType,
+      file_data: buffer,
+      ai_skor: assessment.skor,
+      ai_ringkasan: assessment.ringkasan,
+      antrian,
+    });
   } catch {
     return NextResponse.json(
       { error: "Gagal menyimpan dokumen. Silakan coba lagi." },
       { status: 500 }
     );
   }
-
-  const antrian = getTotalCount() + 1;
-
-  insertSubmission({
-    id,
-    code,
-    nama,
-    nik,
-    whatsapp,
-    email,
-    jenis,
-    keperluan,
-    file_name: fileObj.name,
-    file_path: storedName,
-    ai_skor: assessment.skor,
-    ai_ringkasan: assessment.ringkasan,
-    antrian,
-  });
 
   return NextResponse.json({
     ok: true,

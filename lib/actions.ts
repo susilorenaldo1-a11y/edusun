@@ -1,7 +1,5 @@
 "use server";
 
-import path from "node:path";
-import fs from "node:fs/promises";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
@@ -10,7 +8,6 @@ import {
   rejectSubmission,
 } from "@/lib/db";
 
-const SIGNED_DIR = path.join(process.cwd(), "uploads", "signed");
 const MAX_SIGNED_SIZE = 15 * 1024 * 1024;
 
 function checkPin(pin: string): boolean {
@@ -48,7 +45,7 @@ export async function uploadSignedPdfAction(
   formData: FormData
 ): Promise<{ error?: string }> {
   const id = String(formData.get("id") ?? "");
-  const submission = getSubmissionById(id);
+  const submission = await getSubmissionById(id);
   if (!submission) {
     return { error: "Pengajuan tidak ditemukan." };
   }
@@ -59,24 +56,16 @@ export async function uploadSignedPdfAction(
   }
 
   const fileObj = file as File;
-  if (path.extname(fileObj.name).toLowerCase() !== ".pdf") {
+  if (!fileObj.name.toLowerCase().endsWith(".pdf")) {
     return { error: "File harus berformat PDF." };
   }
   if (fileObj.size > MAX_SIGNED_SIZE) {
     return { error: "Ukuran file maksimal 15 MB." };
   }
 
-  const fileName = `${id}.pdf`;
+  const buffer = Buffer.from(await fileObj.arrayBuffer());
+  await signSubmission(id, buffer);
 
-  try {
-    await fs.mkdir(SIGNED_DIR, { recursive: true });
-    const buffer = Buffer.from(await fileObj.arrayBuffer());
-    await fs.writeFile(path.join(SIGNED_DIR, fileName), buffer);
-  } catch {
-    return { error: "Gagal menyimpan file. Silakan coba lagi." };
-  }
-
-  signSubmission(id, fileName);
   revalidatePath("/admin");
   revalidatePath("/lacak");
   return {};
@@ -86,7 +75,7 @@ export async function rejectAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const catatan = String(formData.get("catatan") ?? "");
   if (!id) return;
-  rejectSubmission(id, catatan || "Dokumen perlu dilengkapi.");
+  await rejectSubmission(id, catatan || "Dokumen perlu dilengkapi.");
   revalidatePath("/admin");
   revalidatePath("/lacak");
 }

@@ -4,8 +4,8 @@ import { JENIS_PILIHAN } from "@/lib/ai";
 
 export const dynamic = "force-dynamic";
 
-export default function Home() {
-  const stats = getStats();
+export default async function Home() {
+  const stats = await getStats();
 
   return (
     <>

@@ -10,7 +10,9 @@ export default async function LacakPage({
   searchParams: Promise<{ code?: string }>;
 }) {
   const { code } = await searchParams;
-  const submission = code ? getSubmissionByCode(code.trim().toUpperCase()) : null;
+  const submission = code
+    ? await getSubmissionByCode(code.trim().toUpperCase())
+    : null;
 
   const steps = [
     { key: "verifikasi", label: "Verifikasi AI" },
@@ -102,7 +104,7 @@ export default async function LacakPage({
 
             {submission.status === "antrean" && (
               <div className="alert alert-success">
-                Posisi antrean Anda saat ini: <strong>#{getQueuePosition(submission)}</strong>{" "}
+                Posisi antrean Anda saat ini: <strong>#{await getQueuePosition(submission)}</strong>{" "}
                 (nomor antrean #{submission.antrian}).
               </div>
             )}
@@ -167,7 +169,7 @@ export default async function LacakPage({
               >
                 Lihat Dokumen Asli
               </a>
-              {submission.status === "ttd" && submission.signed_path && (
+              {submission.status === "ttd" && submission.has_signed && (
                 <a
                   href={`/api/signed/${submission.id}`}
                   target="_blank"
