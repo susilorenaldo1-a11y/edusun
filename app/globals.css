@@ -34,7 +34,10 @@ body {
   display: flex;
   flex-direction: column;
   color: var(--text);
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: url("/balinese-doodle.svg");
+  background-size: 480px 480px;
+  background-repeat: repeat;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
