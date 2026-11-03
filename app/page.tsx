@@ -44,10 +44,10 @@ export default async function Home() {
             </div>
           </div>
           <div className="hero-card">
-            <h3 style={{ fontSize: 15, color: "rgba(255,255,255,0.8)" }}>
+            <h3 style={{ fontSize: 15, color: "var(--text)" }}>
               Alur Pelayanan
             </h3>
-            <ol style={{ paddingLeft: 18, marginTop: 14, color: "#fff" }}>
+            <ol style={{ paddingLeft: 18, marginTop: 14, color: "var(--muted)", fontSize: 14 }}>
               <li style={{ marginBottom: 12 }}>
                 Unggah berkas PDF &amp; isi data
               </li>

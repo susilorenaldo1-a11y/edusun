@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# E-Dusun — Layanan Administrasi Dusun Digital
 
-## Getting Started
+Platform web untuk mengajukan dokumen dan mendapatkan **tanda tangan digital Kepala Dusun** secara online, didukung **verifikasi AI**. Dibangun untuk menyelesaikan masalah antrean fisik pengurusan tanda tangan di **Dusun Permata Anyar, Desa Ubung Kaja, Denpasar**.
 
-First, run the development server:
+> *Pelayanan Administrasi Dusun Cepat, Transparan, dan Cerdas Berbasis AI.*
+
+## Fitur Utama
+
+- **Pengajuan dokumen online** — masyarakat mengunggah berkas PDF dan masuk antrean.
+- **Verifikasi AI** — sistem otomatis memeriksa kelengkapan data (NIK, nama, kontak) dan memberi **skor kelayakan** serta ringkasan untuk memudahkan Kepala Dusun.
+- **Panel Admin Kepala Dusun** — tinjau ringkasan AI, periksa dokumen, unggah PDF yang sudah ditandatangani, **ganti PDF** bila salah input.
+- **Sampah (Recycle Bin)** — dokumen bisa dipindah ke sampah, dikembalikan, atau dihapus permanen.
+- **Lacak status** — masyarakat memantau status pengajuan dan mengunduh dokumen ber-TTD.
+
+## Tech Stack
+
+- [Next.js 16](https://nextjs.org) (App Router, TypeScript)
+- PostgreSQL ([Neon](https://neon.tech))
+- Deployed on [Vercel](https://vercel.com)
+
+## Menjalankan Secara Lokal
+
+```bash
+npm install
+```
+
+Buat file `.env.local` dan isi koneksi database:
+
+```bash
+DATABASE_URL="postgresql://..."
+```
+
+Lalu jalankan server development:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Akun Admin
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- URL: `/admin`
+- PIN default: `UBK2024`
 
-## Learn More
+Ubah PIN lewat environment variable `ADMIN_PIN`.
 
-To learn more about Next.js, take a look at the following resources:
+## Alur Penggunaan
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Masyarakat** mengunggah dokumen di `/ajukan` → mendapat kode pelacakan `UBK-XXXXXX`.
+2. **AI** memverifikasi kelengkapan dan memberi skor kelayakan.
+3. **Kepala Dusun** masuk `/admin`, memeriksa dokumen, lalu menandatangani PDF di platform lain (mis. iLovePDF).
+4. Kepala Dusun **mengunggah PDF yang sudah ditandatangani**.
+5. **Masyarakat** mengunduh dokumen ber-TTD di `/lacak`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Struktur Folder
 
-## Deploy on Vercel
+```
+app/
+  ajukan/          Form pengajuan dokumen
+  lacak/           Lacak status pengajuan
+  admin/           Panel admin Kepala Dusun
+  api/             Route handler (ajukan, file, signed)
+components/        Komponen UI
+lib/               Logika database, AI, dan aksi server
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Terhubung ke Vercel (auto-deploy dari branch `main`) dan database Neon. Environment variable yang dibutuhkan:
+
+- `DATABASE_URL` — koneksi PostgreSQL (Neon)
+- `ADMIN_PIN` — PIN panel admin (opsional, default `UBK2024`)
