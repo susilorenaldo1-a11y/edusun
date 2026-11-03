@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" role="img" aria-label="Ilustrasi desa di Bali yang hijau permai">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6f1e2"/>
+      <stop offset="1" stop-color="#e5eedd"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#f6dfa4" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#f6dfa4" stop-opacity="0"/>
+    </radialGradient>
+    <g id="palm">
+      <path d="M0 0 C4 24 2 50 0 70" stroke="#9c6b44" stroke-width="11" fill="none" stroke-linecap="round"/>
+      <circle cx="-1" cy="-5" r="7" fill="#7a4a2b"/>
+      <circle cx="7" cy="-2" r="6" fill="#8a5632"/>
+      <path d="M0 0 C30 -6 60 -2 84 10 C60 15 30 12 0 0 Z" fill="#2f7550"/>
+      <path d="M0 0 C-30 -6 -60 -2 -84 10 C-60 15 -30 12 0 0 Z" fill="#2f7550"/>
+      <path d="M0 0 C-18 -24 -28 -44 -30 -64 C-14 -50 -4 -30 0 0 Z" fill="#3d8a5f"/>
+      <path d="M0 0 C18 -24 28 -44 30 -64 C14 -50 4 -30 0 0 Z" fill="#3d8a5f"/>
+      <path d="M0 0 C-6 -28 2 -52 4 -72 C10 -52 8 -26 0 0 Z" fill="#2f7550"/>
+    </g>
+    <g id="rice" fill="none" stroke-linecap="round">
+      <path d="M0 0 q-5 -14 -2 -22" stroke="#2f7550" stroke-width="3"/>
+      <path d="M0 0 q5 -14 2 -22" stroke="#2f7550" stroke-width="3"/>
+      <path d="M0 0 q0 -16 -1 -26" stroke="#3d8a5f" stroke-width="3"/>
+    </g>
+  </defs>
+
+  <rect width="960" height="720" fill="url(#sky)"/>
+
+  <g fill="#fbf7ea">
+    <ellipse cx="200" cy="150" rx="46" ry="20" opacity="0.9"/>
+    <ellipse cx="240" cy="142" rx="34" ry="16" opacity="0.9"/>
+    <ellipse cx="170" cy="144" rx="28" ry="14" opacity="0.9"/>
+    <ellipse cx="420" cy="120" rx="40" ry="16" opacity="0.7"/>
+    <ellipse cx="452" cy="114" rx="28" ry="13" opacity="0.7"/>
+    <ellipse cx="394" cy="116" rx="24" ry="12" opacity="0.7"/>
+  </g>
+
+  <circle cx="768" cy="150" r="150" fill="url(#glow)"/>
+  <circle cx="768" cy="150" r="66" fill="#f2ca6c"/>
+
+  <g fill="none" stroke="#8aa88f" stroke-width="3" stroke-linecap="round">
+    <path d="M150 118 q7 -7 14 0 q7 -7 14 0"/>
+    <path d="M204 86 q6 -6 12 0 q6 -6 12 0"/>
+    <path d="M112 96 q6 -6 12 0 q6 -6 12 0"/>
+  </g>
+
+  <path d="M0 300 Q120 240 260 300 Q400 250 520 300 Q660 260 800 300 Q900 280 960 300 L960 720 L0 720 Z" fill="#d3e3d0"/>
+  <path d="M0 340 Q180 290 360 340 Q540 300 720 340 Q840 300 960 330 L960 720 L0 720 Z" fill="#c0d7c2"/>
+
+  <path d="M-40 720 Q140 360 400 400 Q560 428 660 470 L660 720 Z" fill="#93bca0"/>
+  <path d="M520 720 Q700 330 830 360 Q900 388 960 440 L960 720 Z" fill="#82b394"/>
+
+  <g fill="#565b4d">
+    <path d="M652 352 L652 250 L666 250 L666 266 L679 266 L679 283 L692 283 L692 352 Z"/>
+    <path d="M788 352 L788 250 L774 250 L774 266 L761 266 L761 283 L748 283 L748 352 Z"/>
+  </g>
+  <path d="M686 352 L754 352 L754 362 L686 362 Z" fill="#4a4f43"/>
+  <g fill="#d8a24f">
+    <path d="M656 250 L659 238 L662 250 Z"/>
+    <path d="M778 250 L781 238 L784 250 Z"/>
+  </g>
+
+  <path d="M0 445 C100 420 200 428 320 440 C440 452 560 452 680 438 C800 424 880 430 960 440 L960 720 L0 720 Z" fill="#6db08a"/>
+  <path d="M0 505 C120 486 240 492 360 506 C480 518 600 516 720 502 C840 488 900 494 960 504 L960 720 L0 720 Z" fill="#57a178"/>
+  <path d="M0 575 C110 556 230 562 350 576 C470 588 590 586 710 572 C830 558 900 564 960 574 L960 720 L0 720 Z" fill="#468f67"/>
+  <path d="M0 645 C130 626 250 632 370 646 C490 658 610 656 730 642 C850 628 900 634 960 644 L960 720 L0 720 Z" fill="#367c56"/>
+
+  <path d="M0 507 C120 488 240 494 360 508 C480 520 600 518 720 504 C840 490 900 496 960 506" fill="none" stroke="#cfe3c9" stroke-width="2" opacity="0.5"/>
+
+  <ellipse cx="600" cy="598" rx="66" ry="22" fill="#9fd0cc"/>
+  <ellipse cx="600" cy="598" rx="42" ry="13" fill="#b9e0da"/>
+
+  <rect x="80" y="575" width="180" height="14" rx="6" fill="#d8b27e"/>
+  <rect x="100" y="520" width="120" height="56" fill="#f6ecd6"/>
+  <rect x="140" y="540" width="40" height="36" rx="3" fill="#8a5a3b"/>
+  <path d="M60 522 L260 522 L160 440 Z" fill="#7a5230"/>
+  <path d="M60 522 L260 522 L250 500 L70 500 Z" fill="#6b4528"/>
+  <path d="M160 440 L164 426 L168 440 Z" fill="#d8a24f"/>
+
+  <use href="#palm" transform="translate(56 505) scale(0.78)"/>
+  <use href="#palm" transform="translate(320 505) scale(0.85)"/>
+  <use href="#palm" transform="translate(848 490) scale(1.05)"/>
+
+  <g>
+    <use href="#rice" transform="translate(240 610) scale(1)"/>
+    <use href="#rice" transform="translate(300 640) scale(0.9)"/>
+    <use href="#rice" transform="translate(420 660) scale(1)"/>
+    <use href="#rice" transform="translate(520 640) scale(0.95)"/>
+    <use href="#rice" transform="translate(700 620) scale(1)"/>
+    <use href="#rice" transform="translate(820 660) scale(0.9)"/>
+    <use href="#rice" transform="translate(160 680) scale(0.95)"/>
+    <use href="#rice" transform="translate(660 690) scale(0.9)"/>
+    <use href="#rice" transform="translate(900 700) scale(1)"/>
+    <use href="#rice" transform="translate(40 700) scale(0.9)"/>
+  </g>
+</svg>

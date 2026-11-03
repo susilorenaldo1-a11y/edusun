@@ -43,22 +43,48 @@ export default async function Home() {
               </div>
             </div>
           </div>
-          <div className="hero-card">
-            <h3 style={{ fontSize: 15, color: "var(--text)" }}>
-              Alur Pelayanan
-            </h3>
-            <ol style={{ paddingLeft: 18, marginTop: 14, color: "var(--muted)", fontSize: 14 }}>
-              <li style={{ marginBottom: 12 }}>
-                Unggah berkas PDF &amp; isi data
-              </li>
-              <li style={{ marginBottom: 12 }}>
-                AI memverifikasi kelengkapan
-              </li>
-              <li style={{ marginBottom: 12 }}>
-                Masuk antrean TTD Kepala Dusun
-              </li>
-              <li>Dokumen ditandatangani &amp; selesai</li>
-            </ol>
+          <div className="hero-art">
+            <img
+              src="/bali-village.svg"
+              alt="Ilustrasi desa di Bali yang hijau permai"
+              width={960}
+              height={720}
+              fetchPriority="high"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="section" style={{ paddingTop: 24 }}>
+        <div className="container">
+          <div className="section-head">
+            <h2 className="page-title">Alur Pelayanan</h2>
+            <p className="page-sub">
+              Empat langkah ringkas dari pengajuan sampai dokumen selesai
+              ditandatangani.
+            </p>
+          </div>
+          <div className="steps">
+            <div className="step-card">
+              <span className="step-num">1</span>
+              <h3>Unggah Berkas</h3>
+              <p>Isi data dan unggah berkas PDF pendukung.</p>
+            </div>
+            <div className="step-card">
+              <span className="step-num">2</span>
+              <h3>Verifikasi AI</h3>
+              <p>AI memeriksa kelengkapan dan memberi skor kelayakan.</p>
+            </div>
+            <div className="step-card">
+              <span className="step-num">3</span>
+              <h3>Antrean TTD</h3>
+              <p>Masuk antrean tanda tangan Kepala Dusun.</p>
+            </div>
+            <div className="step-card">
+              <span className="step-num">4</span>
+              <h3>Dokumen Selesai</h3>
+              <p>PDF ditandatangani dan siap diunduh.</p>
+            </div>
           </div>
         </div>
       </section>
