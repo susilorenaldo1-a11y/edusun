@@ -19,6 +19,7 @@ export interface Submission {
   antrian: number | null;
   catatan: string | null;
   signed_at: string | null;
+  deleted_at: string | null;
   has_file: boolean;
   has_signed: boolean;
   created_at: string;
@@ -60,9 +61,15 @@ function ensureSchema(): Promise<void> {
           catatan TEXT,
           signed_at TEXT,
           signed_data BYTEA,
+          deleted_at TEXT,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL
         )`
+      )
+      .then(() =>
+        db.query(
+          "ALTER TABLE submissions ADD COLUMN IF NOT EXISTS deleted_at TEXT"
+        )
       )
       .then(() => {});
   }
@@ -71,7 +78,7 @@ function ensureSchema(): Promise<void> {
 
 const METADATA_COLS = `id, code, nama, nik, whatsapp, email, jenis, keperluan,
   file_name, file_type, status, ai_skor, ai_ringkasan, antrian, catatan,
-  signed_at, created_at, updated_at,
+  signed_at, deleted_at, created_at, updated_at,
   (file_data IS NOT NULL) AS has_file,
   (signed_data IS NOT NULL) AS has_signed`;
 
@@ -93,6 +100,7 @@ function mapRow(row: Record<string, unknown>): Submission {
     antrian: row.antrian == null ? null : Number(row.antrian),
     catatan: row.catatan ? String(row.catatan) : null,
     signed_at: row.signed_at ? String(row.signed_at) : null,
+    deleted_at: row.deleted_at ? String(row.deleted_at) : null,
     has_file: Boolean(row.has_file),
     has_signed: Boolean(row.has_signed),
     created_at: String(row.created_at),
@@ -102,7 +110,9 @@ function mapRow(row: Record<string, unknown>): Submission {
 
 export async function getTotalCount(): Promise<number> {
   await ensureSchema();
-  const r = await db.query("SELECT COUNT(*) AS c FROM submissions");
+  const r = await db.query(
+    "SELECT COUNT(*) AS c FROM submissions WHERE deleted_at IS NULL"
+  );
   return Number(r.rows[0].c);
 }
 
@@ -111,9 +121,17 @@ export async function listSubmissions(
 ): Promise<Submission[]> {
   await ensureSchema();
   const sql = status
-    ? `SELECT ${METADATA_COLS} FROM submissions WHERE status = $1 ORDER BY antrian ASC, created_at ASC`
-    : `SELECT ${METADATA_COLS} FROM submissions ORDER BY created_at DESC`;
+    ? `SELECT ${METADATA_COLS} FROM submissions WHERE deleted_at IS NULL AND status = $1 ORDER BY antrian ASC, created_at ASC`
+    : `SELECT ${METADATA_COLS} FROM submissions WHERE deleted_at IS NULL ORDER BY created_at DESC`;
   const r = status ? await db.query(sql, [status]) : await db.query(sql);
+  return (r.rows as Record<string, unknown>[]).map(mapRow);
+}
+
+export async function listTrash(): Promise<Submission[]> {
+  await ensureSchema();
+  const r = await db.query(
+    `SELECT ${METADATA_COLS} FROM submissions WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC`
+  );
   return (r.rows as Record<string, unknown>[]).map(mapRow);
 }
 
@@ -122,7 +140,7 @@ export async function getSubmissionByCode(
 ): Promise<Submission | null> {
   await ensureSchema();
   const r = await db.query(
-    `SELECT ${METADATA_COLS} FROM submissions WHERE code = $1`,
+    `SELECT ${METADATA_COLS} FROM submissions WHERE deleted_at IS NULL AND code = $1`,
     [code]
   );
   const row = r.rows[0] as Record<string, unknown> | undefined;
@@ -247,13 +265,32 @@ export async function rejectSubmission(
   );
 }
 
+export async function moveToTrash(id: string): Promise<void> {
+  await ensureSchema();
+  const now = new Date().toISOString();
+  await db.query(
+    "UPDATE submissions SET deleted_at = $1, updated_at = $1 WHERE id = $2",
+    [now, id]
+  );
+}
+
+export async function restoreSubmission(id: string): Promise<void> {
+  await ensureSchema();
+  await db.query("UPDATE submissions SET deleted_at = NULL WHERE id = $1", [id]);
+}
+
+export async function deletePermanently(id: string): Promise<void> {
+  await ensureSchema();
+  await db.query("DELETE FROM submissions WHERE id = $1", [id]);
+}
+
 export async function getQueuePosition(
   submission: Submission
 ): Promise<number> {
   if (submission.status !== "antrean") return 0;
   await ensureSchema();
   const r = await db.query(
-    "SELECT COUNT(*) AS c FROM submissions WHERE status = 'antrean' AND antrian <= $1",
+    "SELECT COUNT(*) AS c FROM submissions WHERE deleted_at IS NULL AND status = 'antrean' AND antrian <= $1",
     [submission.antrian]
   );
   return Number(r.rows[0].c);
@@ -271,7 +308,8 @@ export async function getStats(): Promise<{
        COUNT(*) FILTER (WHERE status = 'antrean') AS antrean,
        COUNT(*) FILTER (WHERE status = 'ttd') AS ttd,
        COUNT(*) FILTER (WHERE status = 'ditolak') AS ditolak
-     FROM submissions`
+     FROM submissions
+     WHERE deleted_at IS NULL`
   );
   const row = r.rows[0] as Record<string, unknown>;
   return {

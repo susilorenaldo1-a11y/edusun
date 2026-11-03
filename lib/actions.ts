@@ -6,6 +6,9 @@ import {
   getSubmissionById,
   signSubmission,
   rejectSubmission,
+  moveToTrash,
+  restoreSubmission,
+  deletePermanently,
 } from "@/lib/db";
 
 const MAX_SIGNED_SIZE = 15 * 1024 * 1024;
@@ -76,6 +79,30 @@ export async function rejectAction(formData: FormData): Promise<void> {
   const catatan = String(formData.get("catatan") ?? "");
   if (!id) return;
   await rejectSubmission(id, catatan || "Dokumen perlu dilengkapi.");
+  revalidatePath("/admin");
+  revalidatePath("/lacak");
+}
+
+export async function moveToTrashAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await moveToTrash(id);
+  revalidatePath("/admin");
+  revalidatePath("/lacak");
+}
+
+export async function restoreAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await restoreSubmission(id);
+  revalidatePath("/admin");
+  revalidatePath("/lacak");
+}
+
+export async function deletePermanentlyAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+  await deletePermanently(id);
   revalidatePath("/admin");
   revalidatePath("/lacak");
 }

@@ -3,7 +3,13 @@
 import { useActionState } from "react";
 import { uploadSignedPdfAction } from "@/lib/actions";
 
-export default function UploadSignedForm({ id }: { id: string }) {
+export default function UploadSignedForm({
+  id,
+  label = "Unggah PDF TTD",
+}: {
+  id: string;
+  label?: string;
+}) {
   const [state, formAction, isPending] = useActionState(
     uploadSignedPdfAction,
     null
@@ -18,7 +24,7 @@ export default function UploadSignedForm({ id }: { id: string }) {
       <input type="hidden" name="id" value={id} />
       <input type="file" name="signed_pdf" accept=".pdf" required />
       <button type="submit" className="btn btn-primary btn-sm" disabled={isPending}>
-        {isPending ? "Mengunggah…" : "Unggah PDF TTD"}
+        {isPending ? "Mengunggah…" : label}
       </button>
       {state?.error && (
         <span className="muted" style={{ fontSize: 12.5, color: "var(--danger)" }}>
