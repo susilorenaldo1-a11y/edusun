@@ -46,7 +46,8 @@ export default function SignPdfDialog({ id, code }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const padRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const pdfDocRef = useRef<{ destroy: () => Promise<void> } | null>(null);
+  const pdfDocRef = useRef<{ numPages: number } | null>(null);
+  const pdfTaskRef = useRef<{ destroy?: () => unknown } | null>(null);
   const draggingRef = useRef(false);
   const drawingRef = useRef(false);
 
@@ -62,8 +63,19 @@ export default function SignPdfDialog({ id, code }: Props) {
     setLoadError(null);
     setPosition(DEFAULT_POSITION);
     setPageIndex(0);
-    pdfDocRef.current?.destroy().catch(() => undefined);
+
+    const task = pdfTaskRef.current;
+    pdfTaskRef.current = null;
     pdfDocRef.current = null;
+
+    if (task && typeof task.destroy === "function") {
+      try {
+        void Promise.resolve(task.destroy()).catch(() => undefined);
+      } catch {
+        /* pdf.js already torn down */
+      }
+    }
+
     setImageUrl((url) => {
       if (url) URL.revokeObjectURL(url);
       return null;
@@ -80,26 +92,27 @@ export default function SignPdfDialog({ id, code }: Props) {
       const response = await fetch(`/api/file/${id}`);
       if (!response.ok) throw new Error("Dokumen tidak dapat dimuat.");
       const blob = await response.blob();
-      const type = blob.type.toLowerCase();
+      const buffer = new Uint8Array(await blob.arrayBuffer());
+      const looksLikePdf =
+        buffer[0] === 0x25 &&
+        buffer[1] === 0x50 &&
+        buffer[2] === 0x44 &&
+        buffer[3] === 0x46;
 
-      if (type.includes("pdf") || blob.size > 0) {
-        if (type.includes("pdf")) {
-          const pdfjs = await import("pdfjs-dist");
-          pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-          const data = new Uint8Array(await blob.arrayBuffer());
-          const doc = await pdfjs.getDocument({ data }).promise;
-          pdfDocRef.current = doc as unknown as {
-            destroy: () => Promise<void>;
-          };
-          setNumPages(doc.numPages);
-          setIsPdf(true);
-          setPageIndex(0);
-          setLoading(false);
-          return;
-        }
+      if (looksLikePdf) {
+        const pdfjs = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        const task = pdfjs.getDocument({ data: buffer });
+        pdfTaskRef.current = task as unknown as { destroy?: () => unknown };
+        const doc = await task.promise;
+        pdfDocRef.current = doc;
+        setNumPages(doc.numPages);
+        setIsPdf(true);
+        setPageIndex(0);
+        return;
       }
 
-      setImageUrl(URL.createObjectURL(blob));
+      setImageUrl(URL.createObjectURL(new Blob([buffer], { type: blob.type })));
       setIsPdf(false);
       setNumPages(1);
       setPageIndex(0);
