@@ -16,15 +16,27 @@ export default function LoginForm() {
       {state?.error && <div className="alert alert-error">{state.error}</div>}
 
       <div className="field">
-        <label className="label">PIN</label>
+        <label className="label" htmlFor="admin-pin">
+          PIN
+        </label>
         <input
+          id="admin-pin"
           className="input mono"
           name="pin"
           type="password"
-          inputMode="numeric"
+          inputMode="text"
+          autoCapitalize="none"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
           autoFocus
-          placeholder="••••••"
+          placeholder="Huruf dan angka"
+          aria-describedby="admin-pin-hint"
         />
+        <p className="hint mt-8" id="admin-pin-hint">
+          PIN berisi huruf dan angka, jadi gunakan papan ketik biasa (bukan
+          papan angka).
+        </p>
       </div>
 
       <button type="submit" className="btn btn-primary btn-block" disabled={isPending}>
