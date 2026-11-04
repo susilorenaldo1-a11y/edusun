@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -61,7 +62,15 @@ export default function Header() {
     <header className="site-header" ref={headerRef}>
       <div className="container header-inner">
         <Link href="/" className="brand" aria-label="E-Dusun — kembali ke beranda">
-          <span className="brand-mark">E</span>
+          <Image
+            src="/brand/edusun-mark.svg"
+            alt=""
+            aria-hidden
+            width={40}
+            height={40}
+            className="brand-logo"
+            priority
+          />
           <span className="brand-text">
             E-Dusun
             <small>Dusun Permata Anyar</small>

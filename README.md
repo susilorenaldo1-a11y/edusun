@@ -61,6 +61,7 @@ Ubah PIN lewat environment variable `ADMIN_PIN`.
 Dialog penandatanganan meniru alur aplikasi tanda tangan PDF, tetapi berjalan di dalam E-Dusun:
 
 - **Pratinjau dokumen** dirender dengan pdf.js, lengkap dengan navigasi halaman.
+- **Zoom & geser halaman** — mulai dari tampilan satu halaman penuh (100%), perbesar sampai 500% dengan tombol **−/+**, pilih **Utuh** atau **Lebar**, lalu geser halaman untuk membaca bagian yang kecil. Pintasan papan tunas: `+`, `-`, `0`, dan Ctrl+scroll.
 - **Dua cara membuat tanda tangan** — gambar langsung di kanvas (mouse atau layar sentuh) atau unggah foto tanda tangan PNG/JPG.
 - **Atur posisi** dengan menggeser tanda tangan di halaman dan menarik sudut kanan bawah untuk mengubah ukuran.
 - **Disimpan ke database** sebagai PDF baru; dokumen asli tetap utuh. Kepala Dusun bisa mengganti tanda tangan selama status masih antrean.
@@ -90,6 +91,15 @@ GEMINI_MODEL="gemini-3.5-flash"   # opsional
 
 Di Vercel, tambahkan `GEMINI_API_KEY` pada environment Production. Tanpa key, tombol Jala tetap berfungsi dengan jawaban kurasi lokal.
 
+## Identitas Visual
+
+Logo E-Dusun menggambarkan atap meru (dusun/rumah warga), lembar surat, dan goresan tanda tangan — tiga hal yang menjadi inti layanan ini.
+
+- `public/brand/edusun-mark.svg` — lambang utama (dipakai di header, footer, dan favicon).
+- `public/brand/edusun-logo.svg` / `edusun-logo.png` — logo horizontal dengan tagline *Administrasi Dusun Berbasis AI*.
+- `public/brand/og-image.png` — kartu 1200×630 untuk pratinjau tautan (Open Graph/Twitter).
+- `app/icon.svg`, `app/icon.png`, `app/apple-icon.png`, `app/favicon.ico` — ikon tab peramban dan layar utama perangkat.
+
 ## Struktur Folder
 
 ```
@@ -102,6 +112,7 @@ app/
   api/             Route handler lain (ajukan, file, signed)
 components/        Komponen UI (JalaChat.tsx, SignPdfDialog.tsx)
 lib/               Logika database, AI, tanda tangan, aksi server
+public/brand/      Logo, ikon, dan kartu pratinjau tautan
 public/            Aset statis, termasuk worker pdf.js
 ```
 

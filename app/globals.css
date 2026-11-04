@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg: #f7f4ec;
   --surface: #ffffff;
   --primary: #1b6b4a;
@@ -99,16 +99,12 @@ p {
   gap: 10px;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
+.brand-logo {
+  display: block;
   width: 40px;
   height: 40px;
   border-radius: 13px;
-  background: var(--primary);
-  color: #fff;
-  font-weight: 700;
-  font-size: 20px;
+  box-shadow: 0 2px 10px rgba(18, 77, 53, 0.22);
 }
 
 .brand-text {
@@ -256,6 +252,50 @@ p {
   padding: 30px 0;
   font-size: 14px;
   color: var(--muted);
+}
+
+.footer-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px 32px;
+  flex-wrap: wrap;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-logo {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  box-shadow: 0 1px 8px rgba(18, 77, 53, 0.2);
+}
+
+.footer-brand strong {
+  display: block;
+  font-size: 14.5px;
+  color: var(--text);
+}
+
+.footer-brand p {
+  max-width: 380px;
+}
+
+.footer-meta {
+  max-width: 460px;
+  font-size: 12.5px;
+  text-align: right;
+}
+
+@media (max-width: 700px) {
+  .footer-meta {
+    text-align: left;
+  }
 }
 
 .footer-muted {
@@ -1641,6 +1681,7 @@ p {
   display: flex;
   flex-direction: column;
   width: min(1080px, 100%);
+  height: min(940px, calc(100dvh - 40px));
   max-height: calc(100dvh - 40px);
   background: var(--surface);
   border-radius: 22px;
@@ -1696,28 +1737,126 @@ p {
 .sign-preview-column {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-height: 0;
   padding: 18px;
-  overflow: auto;
+  overflow: hidden;
   background: #f1efe6;
 }
 
+/* Viewport that holds the page. The page itself can be zoomed and panned. */
 .sign-preview {
   position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 140px;
   width: 100%;
-  align-self: center;
-  background: #fff;
+  background: #e3dfd1;
   border: 1px solid var(--border);
   border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 10px 28px rgba(27, 42, 34, 0.1);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.sign-preview > .sign-loading,
+.sign-preview > .alert {
+  margin: auto;
+  max-width: 320px;
+}
+
+.sign-stage {
+  position: relative;
+  flex: none;
+  margin: auto;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(27, 42, 34, 0.16);
 }
 
 .sign-page {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.sign-page-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Zoom / page controls sit right under the page they act on. */
+.sign-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sign-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(27, 42, 34, 0.07);
+}
+
+.sign-zoom button {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 30px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sign-zoom button:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.sign-zoom button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sign-zoom button.is-active {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.sign-zoom button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.sign-zoom-value {
+  min-width: 56px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sign-zoom-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--border);
+}
+
+.sign-zoom-hint {
+  margin-top: -2px;
 }
 
 .sign-overlay {
@@ -1758,20 +1897,78 @@ p {
 }
 
 .sign-pager {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 13px;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(27, 42, 34, 0.07);
+}
+
+.sign-pager-btn {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sign-pager-btn:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.sign-pager-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sign-pager-count {
+  min-width: 40px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .sign-aside {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 18px 20px;
+  min-height: 0;
   border-left: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.sign-aside-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  padding: 18px 20px 12px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sign-aside-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .sign-tabs {
@@ -1836,7 +2033,7 @@ p {
 .sign-actions {
   display: flex;
   gap: 10px;
-  margin-top: auto;
+  margin-top: 0;
   padding-top: 6px;
 }
 
@@ -1846,42 +2043,86 @@ p {
 
 .sign-legal {
   padding-top: 10px;
-  border-top: 1px solid var(--border);
   font-size: 11px;
   line-height: 1.5;
   color: var(--muted);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 760px), (max-height: 560px) {
   .sign-body {
     grid-template-columns: 1fr;
-    overflow-y: auto;
+    grid-template-rows: 58dvh minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .sign-zoom-hint {
+    display: none;
+  }
+
+  .sign-toolbar {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .sign-zoom {
+    padding: 2px;
+  }
+
+  .sign-zoom button {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 7px;
+    font-size: 12.5px;
+  }
+
+  .sign-zoom-value {
+    min-width: 46px;
+  }
+
+  .sign-pager {
+    padding: 2px;
+  }
+
+  .sign-pager-btn {
+    min-width: 26px;
+    height: 28px;
+    font-size: 15px;
+  }
+
+  .sign-pager-count {
+    min-width: 32px;
+    font-size: 12px;
   }
 
   .sign-preview-column {
-    height: 44dvh;
+    height: auto;
     min-height: 0;
     max-height: none;
-    flex: none;
-  }
-
-  /* Keep the primary action reachable while the sheet scrolls. */
-  .sign-actions {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    padding: 10px 0 6px;
-    background: var(--surface);
-    box-shadow: 0 -10px 18px rgba(255, 255, 255, 0.94);
+    padding: 12px;
+    gap: 8px;
   }
 
   .sign-aside {
+    min-height: 0;
     border-left: none;
     border-top: 1px solid var(--border);
-    overflow: visible;
+  }
+
+  .sign-aside-scroll {
+    padding: 14px;
+  }
+
+  .sign-aside-foot {
+    padding: 10px 14px 12px;
+  }
+
+  .sign-pad {
+    height: 140px;
   }
 
   .sign-panel {
+    height: 94dvh;
     max-height: 94dvh;
   }
 }
+
