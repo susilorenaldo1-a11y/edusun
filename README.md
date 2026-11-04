@@ -8,7 +8,7 @@ Platform web untuk mengajukan dokumen dan mendapatkan **tanda tangan digital Kep
 
 - **Pengajuan dokumen online** — masyarakat mengunggah berkas PDF dan masuk antrean.
 - **Verifikasi AI** — sistem otomatis memeriksa kelengkapan data (NIK, nama, kontak) dan memberi **skor kelayakan** serta ringkasan untuk memudahkan Kepala Dusun.
-- **Panel Admin Kepala Dusun** — tinjau ringkasan AI, periksa dokumen, unggah PDF yang sudah ditandatangani, **ganti PDF** bila salah input.
+- **Panel Admin Kepala Dusun** — tinjau ringkasan AI, periksa dokumen, dan **tanda tangani PDF langsung di dalam aplikasi** (tanpa platform lain).
 - **Sampah (Recycle Bin)** — dokumen bisa dipindah ke sampah, dikembalikan, atau dihapus permanen.
 - **Lacak status** — masyarakat memantau status pengajuan dan mengunduh dokumen ber-TTD.
 - **Asisten AI "Jala"** — chatbot mengambang di setiap halaman untuk menjawab pertanyaan seputar layanan, syarat berkas, dan lacak status.
@@ -52,9 +52,23 @@ Ubah PIN lewat environment variable `ADMIN_PIN`.
 
 1. **Masyarakat** mengunggah dokumen di `/ajukan` → mendapat kode pelacakan `UBK-XXXXXX`.
 2. **AI** memverifikasi kelengkapan dan memberi skor kelayakan.
-3. **Kepala Dusun** masuk `/admin`, memeriksa dokumen, lalu menandatangani PDF di platform lain (mis. iLovePDF).
-4. Kepala Dusun **mengunggah PDF yang sudah ditandatangani**.
+3. **Kepala Dusun** masuk `/admin`, memeriksa dokumen, lalu menempel tanda tangan langsung pada PDF di dialog **Tanda tangani PDF**.
+4. PDF ber-TTD tersimpan otomatis (status menjadi **Selesai TTD**); opsional, PDF yang sudah ditandatangani di luar juga bisa diunggah manual.
 5. **Masyarakat** mengunduh dokumen ber-TTD di `/lacak`.
+
+## Tanda Tangan di Panel Admin
+
+Dialog penandatanganan meniru alur aplikasi tanda tangan PDF, tetapi berjalan di dalam E-Dusun:
+
+- **Pratinjau dokumen** dirender dengan pdf.js, lengkap dengan navigasi halaman.
+- **Dua cara membuat tanda tangan** — gambar langsung di kanvas (mouse atau layar sentuh) atau unggah foto tanda tangan PNG/JPG.
+- **Atur posisi** dengan menggeser tanda tangan di halaman dan menarik sudut kanan bawah untuk mengubah ukuran.
+- **Disimpan ke database** sebagai PDF baru; dokumen asli tetap utuh. Kepala Dusun bisa mengganti tanda tangan selama status masih antrean.
+- Dokumen gambar (JPG/PNG) otomatis dikemas menjadi PDF satu halaman agar tetap bisa ditandatangani.
+
+Catatan penting: ini **tanda tangan visual** yang ditempelkan ke PDF, bukan tanda tangan elektronik tersertifikasi (PSrE/BSrE). Untuk dokumen yang menuntut kekuatan hukum sertifikat digital, alur unggah PDF bertanda tangan resmi tetap tersedia.
+
+Keamanan: seluruh aksi admin (tanda tangan, tolak, sampah, hapus) memeriksa cookie sesi `admin_auth`, dan endpoint `/api/sign/[id]` menolak permintaan tanpa sesi admin.
 
 ## Asisten AI — Jala
 
@@ -84,9 +98,11 @@ app/
   lacak/           Lacak status pengajuan
   admin/           Panel admin Kepala Dusun
   api/jala/        Endpoint streaming asisten Jala
+  api/sign/        Penempelan tanda tangan ke PDF
   api/             Route handler lain (ajukan, file, signed)
-components/        Komponen UI (termasuk JalaChat.tsx)
-lib/               Logika database, AI, aksi server (jala.ts, jala-server.ts)
+components/        Komponen UI (JalaChat.tsx, SignPdfDialog.tsx)
+lib/               Logika database, AI, tanda tangan, aksi server
+public/            Aset statis, termasuk worker pdf.js
 ```
 
 ## Deployment

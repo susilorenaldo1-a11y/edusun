@@ -15,6 +15,7 @@ import {
 import LoginForm from "@/components/LoginForm";
 import UploadSignedForm from "@/components/UploadSignedForm";
 import DeletePermanentlyButton from "@/components/DeletePermanentlyButton";
+import SignPdfDialog from "@/components/SignPdfDialog";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +51,8 @@ export default async function AdminPage({
           <div>
             <h1 className="page-title">Panel Admin Kepala Dusun</h1>
             <p className="page-sub">
-              Periksa dokumen, tandatangani di platform lain, lalu unggah kembali
-              PDF yang sudah ditandatangani.
+              Periksa dokumen, lalu tandatangani langsung di sini — PDF ber-TTD
+              tersimpan otomatis dan bisa diunduh masyarakat.
             </p>
           </div>
           <form action={logoutAction}>
@@ -189,7 +190,11 @@ export default async function AdminPage({
                   <>
                     {s.status === "antrean" && (
                       <>
-                        <UploadSignedForm id={s.id} />
+                        <SignPdfDialog id={s.id} code={s.code} />
+                        <UploadSignedForm
+                          id={s.id}
+                          label="Unggah PDF ber-TTD (manual)"
+                        />
                         <form action={rejectAction} style={{ display: "flex", gap: 8, flex: 1, minWidth: 260 }}>
                           <input type="hidden" name="id" value={s.id} />
                           <input

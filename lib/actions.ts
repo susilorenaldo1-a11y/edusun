@@ -10,6 +10,7 @@ import {
   restoreSubmission,
   deletePermanently,
 } from "@/lib/db";
+import { isAdmin } from "@/lib/auth";
 
 const MAX_SIGNED_SIZE = 15 * 1024 * 1024;
 
@@ -47,6 +48,10 @@ export async function uploadSignedPdfAction(
   _prev: { error?: string } | null,
   formData: FormData
 ): Promise<{ error?: string }> {
+  if (!(await isAdmin())) {
+    return { error: "Sesi admin berakhir. Silakan masuk kembali." };
+  }
+
   const id = String(formData.get("id") ?? "");
   const submission = await getSubmissionById(id);
   if (!submission) {
@@ -75,6 +80,7 @@ export async function uploadSignedPdfAction(
 }
 
 export async function rejectAction(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) return;
   const id = String(formData.get("id") ?? "");
   const catatan = String(formData.get("catatan") ?? "");
   if (!id) return;
@@ -84,6 +90,7 @@ export async function rejectAction(formData: FormData): Promise<void> {
 }
 
 export async function moveToTrashAction(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) return;
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await moveToTrash(id);
@@ -92,6 +99,7 @@ export async function moveToTrashAction(formData: FormData): Promise<void> {
 }
 
 export async function restoreAction(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) return;
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await restoreSubmission(id);
@@ -100,6 +108,7 @@ export async function restoreAction(formData: FormData): Promise<void> {
 }
 
 export async function deletePermanentlyAction(formData: FormData): Promise<void> {
+  if (!(await isAdmin())) return;
   const id = String(formData.get("id") ?? "");
   if (!id) return;
   await deletePermanently(id);

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored runtime asset served as-is (pdf.js worker).
+    "public/**",
   ]),
 ]);
 
