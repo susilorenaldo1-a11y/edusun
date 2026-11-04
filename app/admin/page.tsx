@@ -78,10 +78,7 @@ export default async function AdminPage({
         </div>
 
         {!isTrash && (
-          <div
-            className="grid grid-2 mb-24"
-            style={{ gridTemplateColumns: "repeat(4, 1fr)" }}
-          >
+          <div className="grid admin-stats mb-24">
             <div className="card text-center">
               <div className="muted" style={{ fontSize: 13 }}>Total</div>
               <div style={{ fontSize: 28, fontWeight: 700 }}>{stats.total}</div>

@@ -279,6 +279,29 @@ export default function SignPdfDialog({
     reader.readAsDataURL(file);
   };
 
+  /* ---------- keep the stamp in view (important on phones) ---------- */
+
+  useEffect(() => {
+    if (!open || !signatureUrl) return;
+    const column = previewRef.current?.closest(
+      ".sign-preview-column"
+    ) as HTMLElement | null;
+    const overlay = overlayRef.current;
+    if (!column || !overlay) return;
+
+    const frame = requestAnimationFrame(() => {
+      const columnBox = column.getBoundingClientRect();
+      const overlayBox = overlay.getBoundingClientRect();
+      const target =
+        column.scrollTop +
+        (overlayBox.top - columnBox.top) -
+        (columnBox.height - overlayBox.height) / 2;
+      column.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [open, signatureUrl, pageIndex]);
+
   /* ---------- drag & resize on the page ---------- */
 
   const beginDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
