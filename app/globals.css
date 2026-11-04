@@ -2071,6 +2071,91 @@ p {
   font-size: 11.5px;
 }
 
+/* Printed name/role placed independently from the signature */
+.sign-label {
+  position: absolute;
+  border: 1px dashed var(--accent);
+  border-radius: 4px;
+  background: rgba(230, 154, 60, 0.06);
+  cursor: move;
+  touch-action: none;
+}
+
+.sign-label img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.sign-text-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sign-tool-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.sign-tool-field input {
+  width: 58px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+
+.sign-tool-field input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.sign-tool-unit {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.sign-text-style {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: auto;
+}
+
+.sign-text-style button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sign-text-style button:hover {
+  background: var(--primary-light);
+}
+
+.sign-text-style button.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
 .sign-actions {
   display: flex;
   gap: 10px;

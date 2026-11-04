@@ -42,60 +42,93 @@ const clamp = (value: number, min: number, max: number) =>
 
 const roundZoom = (value: number) => Math.round(value * 100) / 100;
 
-/** Width of the generated stamp image, in pixels (kept high for print). */
-const STAMP_WIDTH = 1400;
+/** Resolution used when rasterising the printed name, in pixels per PDF point. */
+const LABEL_SCALE = 8;
+
+interface LabelFont {
+  size: number;
+  spacing: number;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+}
 
 /**
- * Draws the signature plus an optional printed name/role underneath it, so the
- * stamp that lands on the PDF looks like a signed block, not just a scribble.
+ * Rasterises the printed name/role so it can be positioned independently from
+ * the signature. Returns the image plus its size in PDF points.
  */
-function buildStamp(
-  signature: string,
-  aspect: number,
-  name: string,
-  role: string
-): Promise<{ url: string; aspect: number }> {
-  const lines = [name, role].filter((line) => line.length > 0);
-  if (lines.length === 0) return Promise.resolve({ url: signature, aspect });
+function renderLabel(
+  lines: string[],
+  font: LabelFont
+): { url: string; widthPt: number; heightPt: number } | null {
+  const text = lines.map((line) => line.trim()).filter((line) => line.length > 0);
+  if (text.length === 0) return null;
 
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => {
-      const width = STAMP_WIDTH;
-      const signatureHeight = Math.round(width / Math.max(0.4, aspect));
-      const fontSize = Math.max(22, Math.round(signatureHeight * 0.13));
-      const lineHeight = Math.round(fontSize * 1.34);
-      const padding = Math.round(fontSize * 0.4);
-      const height = signatureHeight + padding + lineHeight * lines.length;
+  const scale = LABEL_SCALE;
+  const fontPx = Math.max(6, font.size) * scale;
+  const spacingPx = font.spacing * scale;
+  const lineHeight = fontPx * 1.34;
+  const padding = fontPx * 0.25;
 
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d");
-      if (!context) {
-        resolve({ url: signature, aspect });
-        return;
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+
+  const weight = font.bold ? "700" : "400";
+  const style = font.italic ? "italic " : "";
+  const family = `"Segoe UI", "Helvetica Neue", Arial, sans-serif`;
+  context.font = `${style}${weight} ${fontPx}px ${family}`;
+
+  const measure = (line: string) => {
+    if (Math.abs(spacingPx) < 0.01) return context.measureText(line).width;
+    const chars = Array.from(line);
+    const base = chars.reduce((sum, char) => sum + context.measureText(char).width, 0);
+    return base + spacingPx * Math.max(0, chars.length - 1);
+  };
+
+  const widths = text.map(measure);
+  const contentWidth = Math.max(...widths);
+  const width = Math.ceil(contentWidth + padding * 2);
+  const height = Math.ceil(lineHeight * text.length + padding * 2);
+  canvas.width = width;
+  canvas.height = height;
+
+  // Resizing the canvas resets the context, so configure it again.
+  context.font = `${style}${weight} ${fontPx}px ${family}`;
+  context.fillStyle = "#10241b";
+  context.textAlign = "left";
+  context.textBaseline = "alphabetic";
+
+  text.forEach((line, index) => {
+    const baseline = padding + lineHeight * index + fontPx * 0.82;
+    const startX = (width - widths[index]) / 2;
+
+    if (Math.abs(spacingPx) < 0.01) {
+      context.fillText(line, startX, baseline);
+    } else {
+      let x = startX;
+      for (const char of Array.from(line)) {
+        context.fillText(char, x, baseline);
+        x += context.measureText(char).width + spacingPx;
       }
+    }
 
-      context.drawImage(image, 0, 0, width, signatureHeight);
-      context.fillStyle = "#10241b";
-      context.textAlign = "center";
-      context.textBaseline = "top";
-      context.font = `600 ${fontSize}px "Segoe UI", Arial, sans-serif`;
-      lines.forEach((line, index) => {
-        context.fillText(
-          line,
-          width / 2,
-          signatureHeight + padding + index * lineHeight,
-          width * 0.96
-        );
-      });
-
-      resolve({ url: canvas.toDataURL("image/png"), aspect: width / height });
-    };
-    image.onerror = () => reject(new Error("Gagal menyusun tanda tangan."));
-    image.src = signature;
+    if (font.underline) {
+      const thickness = Math.max(1, fontPx * 0.055);
+      context.fillRect(
+        startX,
+        baseline + fontPx * 0.16,
+        widths[index],
+        thickness
+      );
+    }
   });
+
+  return {
+    url: canvas.toDataURL("image/png"),
+    widthPt: width / scale,
+    heightPt: height / scale,
+  };
 }
 
 export default function SignPdfDialog({
@@ -118,10 +151,18 @@ export default function SignPdfDialog({
   const [signatureAspect, setSignatureAspect] = useState(2.6);
   const [signName, setSignName] = useState("");
   const [signRole, setSignRole] = useState("");
-  /** Signature + printed name/role, ready to be placed on the page. */
-  const [stamp, setStamp] = useState<{ url: string; aspect: number } | null>(
-    null
-  );
+  const [fontSize, setFontSize] = useState(10);
+  const [letterSpacing, setLetterSpacing] = useState(0.2);
+  const [textBold, setTextBold] = useState(false);
+  const [textItalic, setTextItalic] = useState(false);
+  const [textUnderline, setTextUnderline] = useState(false);
+  /** Printed name/role, positioned separately from the signature image. */
+  const [labelStamp, setLabelStamp] = useState<{
+    url: string;
+    w: number;
+    h: number;
+  } | null>(null);
+  const [labelPos, setLabelPos] = useState({ x: 60, y: 82 });
   const [mode, setMode] = useState<"draw" | "upload">("draw");
   const [position, setPosition] = useState<Position>(DEFAULT_POSITION);
   const [saving, setSaving] = useState(false);
@@ -137,6 +178,7 @@ export default function SignPdfDialog({
   const draggingRef = useRef(false);
   const drawingRef = useRef(false);
   const zoomAnchorRef = useRef<{ cx: number; cy: number } | null>(null);
+  const labelPlacedRef = useRef(false);
 
   const tabRef = useRef<HTMLButtonElement>(null);
 
@@ -223,7 +265,6 @@ export default function SignPdfDialog({
     setOpen(false);
     setLoading(false);
     setSignatureUrl(null);
-    setStamp(null);
     setError(null);
     setLoadError(null);
     setPosition(DEFAULT_POSITION);
@@ -468,7 +509,6 @@ export default function SignPdfDialog({
     if (!canvas) return;
     const url = trimCanvas(canvas);
     if (!url) return;
-    setStamp(null);
     setSignatureUrl(url);
     setPosition(DEFAULT_POSITION);
     // Honour the real proportions of the drawn strokes instead of guessing.
@@ -488,7 +528,6 @@ export default function SignPdfDialog({
       setupPad();
     }
     setSignatureUrl(null);
-    setStamp(null);
   };
 
   /* ---------- uploaded signature ---------- */
@@ -506,7 +545,6 @@ export default function SignPdfDialog({
       const image = new Image();
       image.onload = () => {
         setSignatureAspect(image.width / Math.max(1, image.height));
-        setStamp(null);
         setSignatureUrl(url);
         setPosition(DEFAULT_POSITION);
         setError(null);
@@ -516,30 +554,55 @@ export default function SignPdfDialog({
     reader.readAsDataURL(file);
   };
 
-  /* ---------- compose signature + printed name ---------- */
+  /* ---------- printed name/role (independent element) ---------- */
 
   useEffect(() => {
-    if (!signatureUrl) return;
-
-    let cancelled = false;
     const timer = window.setTimeout(() => {
-      buildStamp(signatureUrl, signatureAspect, signName.trim(), signRole.trim())
-        .then((result) => {
-          if (!cancelled) setStamp(result);
-        })
-        .catch(() => {
-          if (!cancelled) setStamp({ url: signatureUrl, aspect: signatureAspect });
-        });
+      const rendered = renderLabel([signName, signRole], {
+        size: fontSize,
+        spacing: letterSpacing,
+        bold: textBold,
+        italic: textItalic,
+        underline: textUnderline,
+      });
+
+      if (!rendered) {
+        setLabelStamp(null);
+        return;
+      }
+
+      setLabelStamp({
+        url: rendered.url,
+        w: (rendered.widthPt / Math.max(1, pageSize.w)) * 100,
+        h: (rendered.heightPt / Math.max(1, pageSize.h)) * 100,
+      });
     }, 120);
 
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [signatureUrl, signatureAspect, signName, signRole]);
+    return () => window.clearTimeout(timer);
+  }, [
+    signName,
+    signRole,
+    fontSize,
+    letterSpacing,
+    textBold,
+    textItalic,
+    textUnderline,
+    pageSize.w,
+    pageSize.h,
+  ]);
 
-  const stampUrl = stamp?.url ?? signatureUrl;
-  const stampAspect = stamp?.aspect ?? signatureAspect;
+  /** Puts the name right under the signature the first time it is typed. */
+  const placeLabelUnderSignature = () => {
+    if (labelPlacedRef.current) return;
+    const pageRatio = pageSize.w / Math.max(1, pageSize.h);
+    const signatureHeightPct =
+      (position.w * pageRatio) / Math.max(0.4, signatureAspect);
+    setLabelPos({
+      x: clamp(position.x, 0, 94),
+      y: clamp(position.y + signatureHeightPct + 1.2, 0, 94),
+    });
+    labelPlacedRef.current = true;
+  };
 
   /* ---------- keep the stamp in view (important on phones) ---------- */
 
@@ -628,10 +691,43 @@ export default function SignPdfDialog({
     window.addEventListener("pointerup", stop);
   };
 
+  /* ---------- drag the printed name independently ---------- */
+
+  const beginLabelDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!labelStamp) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = stage.getBoundingClientRect();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const start = labelPos;
+    const maxX = Math.max(0, 100 - labelStamp.w);
+    const maxY = Math.max(0, 100 - labelStamp.h);
+
+    const move = (moveEvent: PointerEvent) => {
+      const dx = ((moveEvent.clientX - startX) / rect.width) * 100;
+      const dy = ((moveEvent.clientY - startY) / rect.height) * 100;
+      setLabelPos({
+        x: clamp(start.x + dx, 0, maxX),
+        y: clamp(start.y + dy, 0, maxY),
+      });
+    };
+
+    const stop = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+    };
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+  };
+
   /* ---------- save ---------- */
 
   const save = async () => {
-    if (!signatureUrl || !stampUrl) {
+    if (!signatureUrl) {
       setError("Tambahkan tanda tangan terlebih dahulu.");
       return;
     }
@@ -646,7 +742,7 @@ export default function SignPdfDialog({
     setError(null);
 
     try {
-      const blob = await (await fetch(stampUrl)).blob();
+      const blob = await (await fetch(signatureUrl)).blob();
       const form = new FormData();
       form.set("signature", new File([blob], "tanda-tangan.png", { type: "image/png" }));
       form.set("page", String(pageIndex));
@@ -654,6 +750,19 @@ export default function SignPdfDialog({
       form.set("y", String((overlayBox.top - stageBox.top) / stageBox.height));
       form.set("width", String(overlayBox.width / stageBox.width));
       form.set("height", String(overlayBox.height / stageBox.height));
+
+      if (labelStamp) {
+        const labelBlob = await (await fetch(labelStamp.url)).blob();
+        form.set(
+          "label",
+          new File([labelBlob], "nama-jabatan.png", { type: "image/png" })
+        );
+        form.set("label_page", String(pageIndex));
+        form.set("label_x", String(labelPos.x / 100));
+        form.set("label_y", String(labelPos.y / 100));
+        form.set("label_width", String(labelStamp.w / 100));
+        form.set("label_height", String(labelStamp.h / 100));
+      }
 
       const response = await fetch(`/api/sign/${id}`, {
         method: "POST",
@@ -771,7 +880,7 @@ export default function SignPdfDialog({
                         )
                       )}
 
-                      {signatureUrl && stampUrl && (
+                      {signatureUrl && (
                         <div
                           ref={overlayRef}
                           className="sign-overlay"
@@ -779,16 +888,33 @@ export default function SignPdfDialog({
                             left: `${position.x}%`,
                             top: `${position.y}%`,
                             width: `${position.w}%`,
-                            aspectRatio: String(stampAspect),
+                            aspectRatio: String(signatureAspect),
                           }}
                           onPointerDown={beginDrag}
                         >
-                          <img src={stampUrl} alt="Posisi tanda tangan" />
+                          <img src={signatureUrl} alt="Posisi tanda tangan" />
                           <span
                             className="sign-handle"
                             onPointerDown={beginResize}
                             aria-hidden="true"
                           />
+                        </div>
+                      )}
+
+                      {labelStamp && (
+                        <div
+                          className="sign-label"
+                          style={{
+                            left: `${labelPos.x}%`,
+                            top: `${labelPos.y}%`,
+                            width: `${labelStamp.w}%`,
+                            height: `${labelStamp.h}%`,
+                          }}
+                          onPointerDown={beginLabelDrag}
+                          role="presentation"
+                          title="Geser untuk mengatur posisi dan jarak teks"
+                        >
+                          <img src={labelStamp.url} alt="Nama dan jabatan" />
                         </div>
                       )}
                     </div>
@@ -946,13 +1072,16 @@ export default function SignPdfDialog({
 
                   <div className="sign-caption">
                     <div className="sign-caption-head">
-                      <span>Keterangan di bawah tanda tangan</span>
-                      <span className="sign-caption-tag">opsional</span>
+                      <span>Nama &amp; jabatan</span>
+                      <span className="sign-caption-tag">elemen terpisah</span>
                     </div>
                     <input
                       className="input"
                       value={signName}
-                      onChange={(event) => setSignName(event.target.value)}
+                      onChange={(event) => {
+                        setSignName(event.target.value);
+                        if (event.target.value.trim()) placeLabelUnderSignature();
+                      }}
                       placeholder="Nama penanda tangan"
                       maxLength={60}
                       aria-label="Nama penanda tangan"
@@ -960,21 +1089,94 @@ export default function SignPdfDialog({
                     <input
                       className="input"
                       value={signRole}
-                      onChange={(event) => setSignRole(event.target.value)}
+                      onChange={(event) => {
+                        setSignRole(event.target.value);
+                        if (event.target.value.trim()) placeLabelUnderSignature();
+                      }}
                       placeholder="Jabatan (mis. Kepala Dusun Permata Anyar)"
                       maxLength={80}
                       aria-label="Jabatan penanda tangan"
                     />
+
+                    <div className="sign-text-tools">
+                      <label className="sign-tool-field">
+                        <span>Ukuran</span>
+                        <input
+                          type="number"
+                          min={6}
+                          max={24}
+                          step={0.5}
+                          value={fontSize}
+                          onChange={(event) =>
+                            setFontSize(
+                              clamp(Number(event.target.value) || 10, 6, 24)
+                            )
+                          }
+                          aria-label="Ukuran huruf dalam poin"
+                        />
+                        <span className="sign-tool-unit">pt</span>
+                      </label>
+                      <label className="sign-tool-field">
+                        <span>Jarak</span>
+                        <input
+                          type="number"
+                          min={-1}
+                          max={5}
+                          step={0.1}
+                          value={letterSpacing}
+                          onChange={(event) =>
+                            setLetterSpacing(
+                              clamp(Number(event.target.value) || 0, -1, 5)
+                            )
+                          }
+                          aria-label="Jarak antar huruf dalam poin"
+                        />
+                        <span className="sign-tool-unit">pt</span>
+                      </label>
+                      <div className="sign-text-style" role="group" aria-label="Gaya huruf">
+                        <button
+                          type="button"
+                          aria-pressed={textBold}
+                          className={textBold ? "is-active" : ""}
+                          style={{ fontWeight: 800 }}
+                          onClick={() => setTextBold((value) => !value)}
+                          title="Tebal"
+                        >
+                          B
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={textItalic}
+                          className={textItalic ? "is-active" : ""}
+                          style={{ fontStyle: "italic" }}
+                          onClick={() => setTextItalic((value) => !value)}
+                          title="Miring"
+                        >
+                          I
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={textUnderline}
+                          className={textUnderline ? "is-active" : ""}
+                          style={{ textDecoration: "underline" }}
+                          onClick={() => setTextUnderline((value) => !value)}
+                          title="Garis bawah"
+                        >
+                          U
+                        </button>
+                      </div>
+                    </div>
+
                     <p className="sign-hint">
-                      Teks ini ikut tercetak di bawah tanda tangan Anda. Kosongkan
-                      bila tidak diperlukan.
+                      Teks ini punya posisi sendiri. Geser di halaman untuk mengatur
+                      jarak dari tanda tangan; kosongkan bila tidak diperlukan.
                     </p>
                   </div>
 
-                  {signatureUrl && stampUrl && (
+                  {signatureUrl && (
                     <div className="sign-preview-thumb">
                       <span className="muted">Pratinjau tanda tangan</span>
-                      <img src={stampUrl} alt="Pratinjau tanda tangan" />
+                      <img src={signatureUrl} alt="Pratinjau tanda tangan" />
                     </div>
                   )}
 

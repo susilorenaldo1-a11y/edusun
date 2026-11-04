@@ -8,6 +8,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MAX_SIGNATURE_BYTES = 3 * 1024 * 1024;
+const MAX_LABEL_BYTES = 1024 * 1024;
 const MAX_OUTPUT_BYTES = 15 * 1024 * 1024;
 
 function readNumber(value: FormDataEntryValue | null, fallback: number): number {
@@ -84,11 +85,37 @@ export async function POST(
     height: readNumber(form.get("height"), 0.12),
   };
 
+  // Optional printed name/role, placed independently from the signature.
+  let label: { data: Uint8Array; placement: typeof placement } | undefined;
+  const labelEntry = form.get("label");
+  if (labelEntry && typeof labelEntry !== "string") {
+    const labelFile = labelEntry as File;
+    if (labelFile.size > MAX_LABEL_BYTES) {
+      return NextResponse.json(
+        { error: "Gambar nama/jabatan maksimal 1 MB." },
+        { status: 400 }
+      );
+    }
+    if (labelFile.size > 0) {
+      label = {
+        data: new Uint8Array(await labelFile.arrayBuffer()),
+        placement: {
+          page: Math.trunc(readNumber(form.get("label_page"), placement.page)),
+          x: readNumber(form.get("label_x"), placement.x),
+          y: readNumber(form.get("label_y"), placement.y),
+          width: readNumber(form.get("label_width"), 0.3),
+          height: readNumber(form.get("label_height"), 0.05),
+        },
+      };
+    }
+  }
+
   try {
     const signed = await stampSignature({
       file,
       signature: new Uint8Array(await signatureFile.arrayBuffer()),
       placement,
+      label,
       signer: "Kepala Dusun",
     });
 

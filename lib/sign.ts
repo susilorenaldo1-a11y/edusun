@@ -22,6 +22,8 @@ export interface SignInput {
   file: { data: Buffer; type: string; name: string };
   signature: Uint8Array;
   placement: Placement;
+  /** Optional printed name/role, stamped with its own placement. */
+  label?: { data: Uint8Array; placement: Placement };
   signer?: string;
 }
 
@@ -102,6 +104,34 @@ export async function stampSignature(input: SignInput): Promise<Uint8Array> {
 
   if (w < 8 || h < 8) {
     throw new Error("Ukuran tanda tangan terlalu kecil.");
+  }
+
+  // Printed name/role goes first so the signature image stays on top.
+  if (input.label) {
+    const labelKind = signatureKind(input.label.data);
+    if (labelKind) {
+      const labelPage = pages[input.label.placement.page] ?? target;
+      const labelWidthPt = labelPage.getWidth();
+      const labelHeightPt = labelPage.getHeight();
+      const lp = input.label.placement;
+      const lw = clamp(lp.width) * labelWidthPt;
+      const lh = clamp(lp.height) * labelHeightPt;
+      const lx = clamp(lp.x) * labelWidthPt;
+      const ly = clamp(lp.y) * labelHeightPt;
+
+      if (lw >= 4 && lh >= 4) {
+        const image =
+          labelKind === "png"
+            ? await pdf.embedPng(input.label.data)
+            : await pdf.embedJpg(input.label.data);
+        labelPage.drawImage(image, {
+          x: lx,
+          y: labelHeightPt - ly - lh,
+          width: lw,
+          height: lh,
+        });
+      }
+    }
   }
 
   target.drawImage(signatureImage, {

@@ -24,7 +24,7 @@ Di tingkat dusun, hampir semua urusan administrasi dimulai dari satu lembar reko
 | Skrining kelengkapan otomatis: skor 0–100, label, dan ringkasan | Berfungsi |
 | Kode pelacakan `UBK-XXXXXX` + posisi antrean | Berfungsi |
 | Panel Kepala Dusun dengan PIN dan tinjauan berkas | Berfungsi |
-| **Tanda tangan PDF di dalam aplikasi** — gambar/unggah tanda tangan, geser, ubah ukuran, multi-halaman, plus nama/jabatan tercetak di bawahnya | Berfungsi |
+| **Tanda tangan PDF di dalam aplikasi** — gambar/unggah tanda tangan, geser, ubah ukuran, multi-halaman, plus teks nama/jabatan terpisah (ukuran, jarak huruf, tebal/miring/garis bawah) | Berfungsi |
 | **Zoom & geser dokumen** saat menandatangani (`−/+`, **Utuh**, **Lebar**, pintasan `+` `-` `0`, Ctrl+scroll) | Berfungsi |
 | Unduh PDF ber-TTD + tanda tangan ulang | Berfungsi |
 | Asisten AI **Jala** dengan streaming dan konteks halaman | Berfungsi |
@@ -116,7 +116,7 @@ Dialog penandatanganan berjalan di dalam E-Dusun, tanpa layanan pihak ketiga:
 - **Pratinjau dokumen** dirender dengan pdf.js, lengkap dengan navigasi halaman.
 - **Zoom & geser halaman** — mulai dari tampilan satu halaman penuh (100%), perbesar sampai 500% dengan tombol **−/+**, pilih **Utuh** atau **Lebar**, lalu geser halaman. Pintasan: `+`, `-`, `0`, dan Ctrl+scroll.
 - **Dua cara membuat tanda tangan** — gambar langsung di kanvas (mouse atau layar sentuh) atau unggah foto tanda tangan PNG/JPG.
-- **Keterangan nama & jabatan** — isi kolom opsional agar nama penanda tangan (mis. Kepala Dusun) ikut tercetak di bawah tanda tangan saat ditempelkan ke PDF.
+- **Nama & jabatan sebagai elemen terpisah** — teks punya posisi sendiri (bisa digeser menjauh/dekat dari tanda tangan) dan gaya sendiri: ukuran huruf, jarak antar huruf, tebal, miring, serta garis bawah.
 - **Atur posisi** dengan menggeser tanda tangan di halaman dan menarik sudut kanan bawah untuk mengubah ukuran.
 - **Disimpan ke database** sebagai PDF baru; dokumen asli tetap utuh. Tanda tangan bisa diganti selama status masih antrean.
 - Dokumen gambar (JPG/PNG) otomatis dikemas menjadi PDF satu halaman agar tetap bisa ditandatangani.
