@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 interface Props {
   id: string;
   code: string;
+  label?: string;
 }
 
 interface Position {
@@ -26,7 +27,11 @@ const DEFAULT_POSITION: Position = { x: 60, y: 74, w: 30 };
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
-export default function SignPdfDialog({ id, code }: Props) {
+export default function SignPdfDialog({
+  id,
+  code,
+  label = "Tanda tangani PDF",
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -405,7 +410,7 @@ export default function SignPdfDialog({ id, code }: Props) {
   return (
     <>
       <button type="button" className="btn btn-primary btn-sm" onClick={openDialog}>
-        Tanda tangani PDF
+        {label}
       </button>
 
       {open && (

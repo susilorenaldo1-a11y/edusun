@@ -212,6 +212,11 @@ export default async function AdminPage({
 
                     {s.status === "ttd" && (
                       <>
+                        <SignPdfDialog
+                          id={s.id}
+                          code={s.code}
+                          label="Tanda tangani ulang"
+                        />
                         <UploadSignedForm id={s.id} label="Ganti PDF TTD" />
                         {s.has_signed && (
                           <a
