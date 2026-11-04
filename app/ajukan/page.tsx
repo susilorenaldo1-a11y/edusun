@@ -11,13 +11,46 @@ interface SuccessState {
   label: string;
 }
 
+/** Vercel menolak badan permintaan di atas ±4,5 MB, jadi kita batasi sebelum dikirim. */
+const MAX_UPLOAD = 4 * 1024 * 1024;
+const MAX_UPLOAD_LABEL = "4 MB";
+
+const formatSize = (bytes: number) =>
+  bytes >= 1024 * 1024
+    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
 export default function AjukanPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<SuccessState | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [fileSize, setFileSize] = useState<number>(0);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function acceptFile(f: File | null) {
+    if (!f) {
+      setFileName(null);
+      setFileSize(0);
+      setFileError(null);
+      return;
+    }
+    if (f.size > MAX_UPLOAD) {
+      setFileError(
+        `"${f.name}" berukuran ${formatSize(f.size)}, melebihi batas ${MAX_UPLOAD_LABEL}. Kompres atau kecilkan dokumen dulu, lalu unggah lagi.`
+      );
+      setFileName(null);
+      setFileSize(0);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
+    setFileError(null);
+    setError(null);
+    setFileName(f.name);
+    setFileSize(f.size);
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,28 +64,58 @@ export default function AjukanPage() {
       return;
     }
 
+    if ((file as File).size > MAX_UPLOAD) {
+      setError(
+        `Ukuran dokumen melebihi batas ${MAX_UPLOAD_LABEL}. Kompres atau kecilkan dokumen dulu, lalu unggah lagi.`
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/ajukan", {
         method: "POST",
         body: data,
       });
-      const json = await res.json();
+
+      // Server bisa membalas HTML (mis. 413 dari platform), jadi jangan langsung res.json().
+      const raw = await res.text();
+      let json: (Partial<SuccessState> & { error?: string }) | null = null;
+      try {
+        json = JSON.parse(raw) as Partial<SuccessState> & { error?: string };
+      } catch {
+        json = null;
+      }
+
       if (!res.ok) {
-        setError(json.error ?? "Terjadi kesalahan. Silakan coba lagi.");
+        if (res.status === 413) {
+          setError(
+            `Dokumen terlalu besar untuk dikirim ke server (batas ${MAX_UPLOAD_LABEL}). Kompres PDF atau kecilkan fotonya, lalu coba lagi.`
+          );
+        } else {
+          setError(
+            json?.error ??
+              `Pengajuan gagal dikirim (kode ${res.status}). Silakan coba lagi.`
+          );
+        }
         return;
       }
-      setSuccess(json);
+
+      if (!json?.code) {
+        setError("Server tidak mengembalikan kode pengajuan. Silakan coba lagi.");
+        return;
+      }
+
+      setSuccess(json as SuccessState);
     } catch {
-      setError("Gagal terhubung ke server. Silakan coba lagi.");
+      setError("Gagal terhubung ke server. Periksa koneksi Anda lalu coba lagi.");
     } finally {
       setLoading(false);
     }
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    setFileName(f ? f.name : null);
+    acceptFile(e.target.files?.[0] ?? null);
   }
 
   if (success) {
@@ -132,7 +195,11 @@ export default function AjukanPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="card">
-          {error && <div className="alert alert-error">{error}</div>}
+          {error && (
+            <div className="alert alert-error" role="alert">
+              {error}
+            </div>
+          )}
 
           <div className="field">
             <label className="label">Nama Lengkap</label>
@@ -216,12 +283,13 @@ export default function AjukanPage() {
                 e.preventDefault();
                 setDragging(false);
                 const f = e.dataTransfer.files?.[0];
-                if (f && fileRef.current) {
+                if (!f) return;
+                if (fileRef.current) {
                   const dt = new DataTransfer();
                   dt.items.add(f);
                   fileRef.current.files = dt.files;
-                  setFileName(f.name);
                 }
+                acceptFile(f);
               }}
             >
               {fileName ? (
@@ -229,12 +297,16 @@ export default function AjukanPage() {
                   <div style={{ fontSize: 18, fontWeight: 600, color: "var(--primary-dark)" }}>
                     {fileName}
                   </div>
-                  <div className="hint mt-8">Klik untuk mengganti file</div>
+                  <div className="hint mt-8">
+                    {formatSize(fileSize)} · klik untuk mengganti file
+                  </div>
                 </>
               ) : (
                 <>
                   <div style={{ fontSize: 18 }}>Seret &amp; letakkan berkas di sini</div>
-                  <div className="hint mt-8">atau klik untuk memilih file · maks 10 MB</div>
+                  <div className="hint mt-8">
+                    atau klik untuk memilih file · PDF/JPG/PNG · maks {MAX_UPLOAD_LABEL}
+                  </div>
                 </>
               )}
             </div>
@@ -246,6 +318,11 @@ export default function AjukanPage() {
               onChange={handleFileChange}
               style={{ display: "none" }}
             />
+            {fileError && (
+              <div className="alert alert-error" role="alert" style={{ marginTop: 8 }}>
+                {fileError}
+              </div>
+            )}
           </div>
 
           <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading}>

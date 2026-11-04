@@ -3,7 +3,10 @@ import { insertSubmission, getTotalCount } from "@/lib/db";
 import { assessSubmission } from "@/lib/ai";
 import { generateTrackingCode, generateId } from "@/lib/util";
 
-const MAX_SIZE = 10 * 1024 * 1024;
+// Vercel menolak badan permintaan di atas ±4,5 MB sebelum fungsi ini berjalan,
+// jadi batas yang bisa diandalkan adalah 4 MB.
+const MAX_SIZE = 4 * 1024 * 1024;
+const MAX_SIZE_LABEL = "4 MB";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -53,8 +56,10 @@ export async function POST(request: NextRequest) {
 
   if (fileObj.size > MAX_SIZE) {
     return NextResponse.json(
-      { error: "Ukuran file maksimal 10 MB." },
-      { status: 400 }
+      {
+        error: `Ukuran file maksimal ${MAX_SIZE_LABEL}. Kompres atau kecilkan dokumen dulu, lalu unggah lagi.`,
+      },
+      { status: 413 }
     );
   }
 
