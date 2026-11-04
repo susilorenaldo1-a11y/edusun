@@ -744,3 +744,742 @@ p {
   border-top: 1px solid var(--border);
   margin: 20px 0;
 }
+
+/* ---------- Jala assistant ---------- */
+.jala-root {
+  --jala-ease: cubic-bezier(0.22, 0.85, 0.28, 1);
+}
+
+.jala-fab {
+  position: fixed;
+  right: 22px;
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  z-index: 72;
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  padding: 0;
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(18, 45, 32, 0.24), 0 2px 6px rgba(18, 45, 32, 0.12);
+  transition: transform 0.18s var(--jala-ease), box-shadow 0.18s var(--jala-ease);
+}
+
+.jala-fab img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  transform: scale(1.02);
+  pointer-events: none;
+}
+
+.jala-fab:hover,
+.jala-fab:focus-visible {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 20px 38px rgba(18, 45, 32, 0.3), 0 3px 8px rgba(18, 45, 32, 0.16);
+}
+
+.jala-fab:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.jala-fab:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.jala-fab-glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: jala-pulse 3.4s ease-out infinite;
+}
+
+@keyframes jala-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(27, 107, 74, 0.4);
+  }
+  65% {
+    box-shadow: 0 0 0 16px rgba(27, 107, 74, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(27, 107, 74, 0);
+  }
+}
+
+.jala-fab-dot {
+  position: absolute;
+  right: 3px;
+  bottom: 4px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #2fbf71;
+  border: 2.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(27, 107, 74, 0.15);
+}
+
+.jala-fab-unread {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2.5px solid #fff;
+  animation: jala-pop 0.3s var(--jala-ease);
+}
+
+.jala-fab-label {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(6px);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--text);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s var(--jala-ease);
+  box-shadow: 0 8px 20px rgba(18, 45, 32, 0.18);
+}
+
+.jala-fab:hover .jala-fab-label,
+.jala-fab:focus-visible .jala-fab-label {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.jala-fab.is-open .jala-fab-label {
+  display: none;
+}
+
+.jala-hint {
+  position: fixed;
+  right: 22px;
+  bottom: calc(22px + 66px + 22px + env(safe-area-inset-bottom, 0px));
+  z-index: 71;
+  max-width: 250px;
+  padding: 11px 36px 11px 14px;
+  border-radius: 14px;
+  background: var(--text);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 16px 34px rgba(18, 45, 32, 0.26);
+  animation: jala-rise 0.4s var(--jala-ease);
+}
+
+.jala-hint::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  bottom: -5px;
+  width: 12px;
+  height: 12px;
+  background: var(--text);
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+
+.jala-hint-close {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+
+.jala-hint-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.jala-panel {
+  position: fixed;
+  right: 22px;
+  bottom: calc(22px + 66px + 14px + env(safe-area-inset-bottom, 0px));
+  z-index: 71;
+  display: flex;
+  flex-direction: column;
+  width: min(404px, calc(100vw - 32px));
+  height: min(628px, calc(100dvh - 150px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(18, 45, 32, 0.26), 0 4px 12px rgba(18, 45, 32, 0.08);
+  transform-origin: bottom right;
+  animation: jala-pop 0.26s var(--jala-ease);
+}
+
+@keyframes jala-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.jala-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 12px 14px 16px;
+  color: #fff;
+  background: linear-gradient(140deg, #1f7a55 0%, #1b6b4a 45%, #114a34 100%);
+  overflow: hidden;
+}
+
+.jala-header::after {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -30px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16), transparent 68%);
+  pointer-events: none;
+}
+
+.jala-header-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  object-fit: cover;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.jala-header-text {
+  min-width: 0;
+}
+
+.jala-header-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.jala-verified {
+  display: inline-grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #4a2c00;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.jala-header-role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.82);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jala-online-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #64e6a4;
+  box-shadow: 0 0 0 2px rgba(100, 230, 164, 0.25);
+  flex-shrink: 0;
+}
+
+.jala-header-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.jala-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.jala-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.jala-icon-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.jala-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 14px 6px;
+  background-color: #fbfaf5;
+  background-image: radial-gradient(rgba(27, 107, 74, 0.07) 1px, transparent 1px);
+  background-size: 18px 18px;
+  scrollbar-width: thin;
+  scrollbar-color: #cfd8d1 transparent;
+}
+
+.jala-messages::-webkit-scrollbar {
+  width: 7px;
+}
+
+.jala-messages::-webkit-scrollbar-thumb {
+  background: #cfd8d1;
+  border-radius: 999px;
+}
+
+.jala-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 14px;
+  animation: jala-rise 0.22s var(--jala-ease);
+}
+
+.jala-msg.user {
+  justify-content: flex-end;
+}
+
+@keyframes jala-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.jala-msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #fff;
+  object-fit: cover;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.jala-bubble {
+  max-width: 82%;
+  padding: 10px 13px 7px;
+  border-radius: 16px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 6px;
+  box-shadow: 0 1px 2px rgba(27, 42, 34, 0.04);
+  overflow-wrap: anywhere;
+}
+
+.jala-msg.user .jala-bubble {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  border-radius: 16px;
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 6px 16px rgba(27, 107, 74, 0.18);
+}
+
+.jala-msg.is-error .jala-bubble {
+  background: var(--danger-light);
+  border-color: #f0c8c3;
+  color: #8f2c21;
+}
+
+.jala-user-text {
+  white-space: pre-wrap;
+}
+
+.jala-time {
+  display: block;
+  margin-top: 5px;
+  font-size: 10.5px;
+  text-align: right;
+  color: var(--muted);
+  opacity: 0.9;
+}
+
+.jala-msg.user .jala-time {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.jala-msg.is-error .jala-time {
+  color: #a8534a;
+}
+
+/* Markdown inside bubbles */
+.jala-md > *:first-child {
+  margin-top: 0;
+}
+
+.jala-md > *:last-child {
+  margin-bottom: 0;
+}
+
+.jala-md p {
+  margin: 0 0 8px;
+}
+
+.jala-md ul,
+.jala-md ol {
+  margin: 4px 0 8px;
+  padding-left: 18px;
+}
+
+.jala-md li {
+  margin-bottom: 3px;
+}
+
+.jala-md li::marker {
+  color: var(--primary);
+}
+
+.jala-md strong {
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.jala-msg.user .jala-md strong {
+  color: #fff;
+}
+
+.jala-md em {
+  font-style: italic;
+}
+
+.jala-md code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(27, 107, 74, 0.09);
+  color: var(--primary-dark);
+  font-family: var(--font-mono);
+  font-size: 12.8px;
+}
+
+.jala-md pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #10241b;
+  color: #e7f5ee;
+  font-size: 12.5px;
+  overflow-x: auto;
+}
+
+.jala-md pre code {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+}
+
+.jala-md a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.jala-md blockquote {
+  margin: 8px 0;
+  padding: 2px 0 2px 10px;
+  border-left: 3px solid var(--primary-light);
+  color: var(--muted);
+}
+
+.jala-md h3,
+.jala-md h4 {
+  margin: 6px 0 6px;
+  font-size: 14.5px;
+}
+
+.jala-md hr {
+  margin: 10px 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.jala-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 2px;
+}
+
+.jala-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0.55;
+  animation: jala-bounce 1.25s infinite ease-in-out both;
+}
+
+.jala-typing span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.jala-typing span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes jala-bounce {
+  0%,
+  70%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  35% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.jala-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px 0 8px 36px;
+  animation: jala-rise 0.3s var(--jala-ease);
+}
+
+.jala-chip {
+  padding: 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary-dark);
+  font-family: inherit;
+  font-size: 12.8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.jala-chip:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.jala-chip:active {
+  transform: translateY(1px);
+}
+
+.jala-chip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.jala-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.jala-input {
+  flex: 1;
+  min-height: 42px;
+  max-height: 120px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: #fbfaf5;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14.5px;
+  line-height: 1.45;
+  resize: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.jala-input::placeholder {
+  color: #94a29a;
+}
+
+.jala-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.jala-send {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.jala-send:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.jala-send:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.jala-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.jala-send.jala-stop {
+  background: var(--danger);
+}
+
+.jala-send:focus-visible {
+  outline: 2px solid var(--primary-dark);
+  outline-offset: 2px;
+}
+
+.jala-footnote {
+  margin: 0;
+  padding: 0 14px 11px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10.8px;
+  text-align: center;
+}
+
+.jala-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 560px) {
+  .jala-fab {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    width: 60px;
+    height: 60px;
+  }
+
+  .jala-hint {
+    right: 16px;
+    bottom: calc(16px + 60px + 16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .jala-panel {
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    padding-top: env(safe-area-inset-top, 0px);
+    animation: jala-slide 0.24s var(--jala-ease);
+  }
+
+  .jala-composer {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .jala-footnote {
+    padding-bottom: calc(11px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .jala-bubble {
+    max-width: 86%;
+  }
+
+  .jala-panel ~ .jala-fab {
+    display: none;
+  }
+}
+
+@keyframes jala-slide {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jala-fab,
+  .jala-fab-glow,
+  .jala-fab-label,
+  .jala-panel,
+  .jala-msg,
+  .jala-chips,
+  .jala-typing span,
+  .jala-fab-unread,
+  .jala-hint {
+    animation: none !important;
+    transition: none !important;
+  }
+}
