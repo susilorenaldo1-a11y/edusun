@@ -194,6 +194,7 @@ export async function POST(request: NextRequest) {
         const ai = new GoogleGenAI({ apiKey });
         let produced = false;
         let lastError: unknown = null;
+        let finishReason: string | null = null;
 
         const candidates = modelCandidates();
         const models = stickyModel
@@ -211,12 +212,14 @@ export async function POST(request: NextRequest) {
                 systemInstruction,
                 temperature: 0.6,
                 topP: 0.95,
-                maxOutputTokens: 900,
+                maxOutputTokens: 1500,
               },
             });
 
             for await (const chunk of result) {
               if (request.signal.aborted) break;
+              const reason = chunk.candidates?.[0]?.finishReason;
+              if (reason) finishReason = String(reason);
               const text = chunk.text;
               if (!text) continue;
               produced = true;
@@ -236,6 +239,12 @@ export async function POST(request: NextRequest) {
           }
           send({ type: "meta", mode: "faq" });
           await streamFallback(send, offlineReply(latestQuestion), request.signal);
+        } else if (finishReason && finishReason !== "STOP") {
+          console.info(`[jala] answer ended with finishReason=${finishReason}`);
+          send({
+            type: "delta",
+            text: "\n\n_(Jawaban terputus sebelum selesai. Silakan kirim ulang pertanyaan Anda.)_",
+          });
         }
 
         send({ type: "done" });

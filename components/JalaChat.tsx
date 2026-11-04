@@ -223,6 +223,27 @@ export default function JalaChat() {
         let buffer = "";
         let answer = "";
 
+        const consumeFrame = (frame: string) => {
+          for (const line of frame.split("\n")) {
+            if (!line.startsWith("data:")) continue;
+            let event: { type?: string; text?: string; message?: string } | null =
+              null;
+            try {
+              event = JSON.parse(line.slice(5).trim());
+            } catch {
+              continue;
+            }
+            if (!event) continue;
+
+            if (event.type === "delta" && typeof event.text === "string") {
+              answer += event.text;
+              updateMessage(botId, answer);
+            } else if (event.type === "error") {
+              throw new Error(event.message ?? "Jala terputus. Coba lagi, ya.");
+            }
+          }
+        };
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -233,27 +254,12 @@ export default function JalaChat() {
             const frame = buffer.slice(0, split);
             buffer = buffer.slice(split + 2);
             split = buffer.indexOf("\n\n");
-
-            for (const line of frame.split("\n")) {
-              if (!line.startsWith("data:")) continue;
-              let event: { type?: string; text?: string; message?: string } | null =
-                null;
-              try {
-                event = JSON.parse(line.slice(5).trim());
-              } catch {
-                continue;
-              }
-              if (!event) continue;
-
-              if (event.type === "delta" && typeof event.text === "string") {
-                answer += event.text;
-                updateMessage(botId, answer);
-              } else if (event.type === "error") {
-                throw new Error(event.message ?? "Jala terputus. Coba lagi, ya.");
-              }
-            }
+            consumeFrame(frame);
           }
         }
+
+        // Flush a trailing frame if the connection closed without the final blank line.
+        if (buffer.trim()) consumeFrame(buffer);
 
         if (!answer.trim()) {
           throw new Error("Jala tidak mengirim jawaban. Silakan coba lagi.");
