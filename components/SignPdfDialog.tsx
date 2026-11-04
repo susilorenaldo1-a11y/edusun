@@ -135,6 +135,17 @@ export default function SignPdfDialog({
     setZoom(fitWidthZoom);
   }, [rememberZoomAnchor, fitWidthZoom]);
 
+  /** Page navigation always restarts from the top of the new page. */
+  const goToPage = useCallback(
+    (next: number) => {
+      const target = clamp(Math.round(next), 0, Math.max(0, numPages - 1));
+      setPageIndex(target);
+      const scroller = previewRef.current;
+      if (scroller) scroller.scrollTo({ top: 0, left: 0 });
+    },
+    [numPages]
+  );
+
   useEffect(() => {
     const el = previewRef.current;
     const anchor = zoomAnchorRef.current;
@@ -745,7 +756,7 @@ export default function SignPdfDialog({
                       <button
                         type="button"
                         className="sign-pager-btn"
-                        onClick={() => setPageIndex((index) => Math.max(0, index - 1))}
+                        onClick={() => goToPage(pageIndex - 1)}
                         disabled={pageIndex === 0}
                         aria-label="Halaman sebelumnya"
                         title="Halaman sebelumnya"
@@ -759,9 +770,7 @@ export default function SignPdfDialog({
                       <button
                         type="button"
                         className="sign-pager-btn"
-                        onClick={() =>
-                          setPageIndex((index) => Math.min(numPages - 1, index + 1))
-                        }
+                        onClick={() => goToPage(pageIndex + 1)}
                         disabled={pageIndex >= numPages - 1}
                         aria-label="Halaman berikutnya"
                         title="Halaman berikutnya"
