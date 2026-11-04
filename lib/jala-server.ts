@@ -37,7 +37,7 @@ Membantu masyarakat memahami dan menyelesaikan layanan administrasi di E-Dusun: 
 
 PENGETAHUAN PRODUK (jangan bertentangan dengan fakta ini)
 - Jenis layanan: Surat Keterangan Usaha (SKU), Surat Keterangan Tidak Mampu (SKTM), Surat Keterangan Domisili (SKD), Surat Keterangan Kelakuan Baik (SKKB), Rekomendasi Nikah, dan Surat Pengantar Lainnya.
-- Halaman pengajuan: /ajukan. Data yang diisi: nama lengkap, NIK 16 digit, nomor WhatsApp, email (opsional), jenis surat, keperluan, dan unggahan dokumen pendukung PDF/JPG/PNG maksimal 10 MB.
+- Halaman pengajuan: /ajukan. Data yang diisi: nama lengkap, NIK 16 digit, nomor WhatsApp, email (opsional), jenis surat, keperluan, dan unggahan dokumen pendukung PDF/JPG/PNG maksimal 4 MB.
 - Setelah dikirim, sistem memberi kode pelacakan berformat UBK-XXXXXX dan nomor antrean. Kode itu harus disimpan.
 - Verifikasi AI memberi skor kelayakan 0–100 dengan label Layak, Perlu Ditinjau, atau Kurang Lengkap, beserta ringkasan untuk Kepala Dusun.
 - Kepala Dusun memeriksa berkas lalu menandatangani dokumen secara digital. Setelah selesai, status menjadi "Selesai TTD" dan PDF ber-TTD bisa diunduh.
@@ -98,7 +98,7 @@ const KNOWLEDGE: KnowledgeEntry[] = [
 1. Buka menu **Ajukan Dokumen** (/ajukan).
 2. Isi nama lengkap, **NIK 16 digit**, nomor WhatsApp, dan email (opsional).
 3. Pilih jenis surat dan tuliskan keperluan Anda.
-4. Unggah dokumen pendukung (**PDF/JPG/PNG**, maksimal 10 MB).
+4. Unggah dokumen pendukung (**PDF/JPG/PNG**, maksimal 4 MB).
 5. Kirim, lalu simpan **kode pelacakan UBK-XXXXXX** yang muncul.
 
 Setelah itu berkas masuk verifikasi AI dan antrean tanda tangan Kepala Dusun. Ada yang ingin ditanyakan soal salah satu langkahnya?`,
@@ -107,7 +107,7 @@ Setelah itu berkas masuk verifikasi AI dan antrean tanda tangan Kepala Dusun. Ad
     keywords: ["syarat", "dokumen", "berkas", "persiapan", "siapkan", "lampiran"],
     answer: `Berkas yang perlu disiapkan:
 
-- **Dokumen pendukung** dalam format PDF, JPG, atau PNG (maksimal 10 MB).
+- **Dokumen pendukung** dalam format PDF, JPG, atau PNG (maksimal 4 MB).
 - **NIK 16 digit** dan nomor WhatsApp aktif.
 - Keterangan keperluan yang jelas, minimal satu kalimat.
 
@@ -164,7 +164,7 @@ Siapkan KTP, Kartu Keluarga, dan data calon pasangan. Ajukan di /ajukan dengan j
     answer: `Kalau berkas gagal diunggah, biasanya karena format atau ukuran:
 
 - Pastikan format **PDF, JPG, atau PNG**.
-- Ukuran maksimal **10 MB**. Bila lebih, kompres dulu PDF-nya atau kecilkan fotonya.
+- Ukuran maksimal **4 MB**. Bila lebih, kompres dulu PDF-nya atau kecilkan fotonya.
 - Nama file sebaiknya tanpa karakter aneh, cukup huruf, angka, dan garis bawah.
 - Coba unggah ulang, atau ganti peramban (Chrome terbaru paling aman).
 
