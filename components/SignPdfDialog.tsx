@@ -42,6 +42,62 @@ const clamp = (value: number, min: number, max: number) =>
 
 const roundZoom = (value: number) => Math.round(value * 100) / 100;
 
+/** Width of the generated stamp image, in pixels (kept high for print). */
+const STAMP_WIDTH = 1400;
+
+/**
+ * Draws the signature plus an optional printed name/role underneath it, so the
+ * stamp that lands on the PDF looks like a signed block, not just a scribble.
+ */
+function buildStamp(
+  signature: string,
+  aspect: number,
+  name: string,
+  role: string
+): Promise<{ url: string; aspect: number }> {
+  const lines = [name, role].filter((line) => line.length > 0);
+  if (lines.length === 0) return Promise.resolve({ url: signature, aspect });
+
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const width = STAMP_WIDTH;
+      const signatureHeight = Math.round(width / Math.max(0.4, aspect));
+      const fontSize = Math.max(22, Math.round(signatureHeight * 0.13));
+      const lineHeight = Math.round(fontSize * 1.34);
+      const padding = Math.round(fontSize * 0.4);
+      const height = signatureHeight + padding + lineHeight * lines.length;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        resolve({ url: signature, aspect });
+        return;
+      }
+
+      context.drawImage(image, 0, 0, width, signatureHeight);
+      context.fillStyle = "#10241b";
+      context.textAlign = "center";
+      context.textBaseline = "top";
+      context.font = `600 ${fontSize}px "Segoe UI", Arial, sans-serif`;
+      lines.forEach((line, index) => {
+        context.fillText(
+          line,
+          width / 2,
+          signatureHeight + padding + index * lineHeight,
+          width * 0.96
+        );
+      });
+
+      resolve({ url: canvas.toDataURL("image/png"), aspect: width / height });
+    };
+    image.onerror = () => reject(new Error("Gagal menyusun tanda tangan."));
+    image.src = signature;
+  });
+}
+
 export default function SignPdfDialog({
   id,
   code,
@@ -60,6 +116,12 @@ export default function SignPdfDialog({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [signatureAspect, setSignatureAspect] = useState(2.6);
+  const [signName, setSignName] = useState("");
+  const [signRole, setSignRole] = useState("");
+  /** Signature + printed name/role, ready to be placed on the page. */
+  const [stamp, setStamp] = useState<{ url: string; aspect: number } | null>(
+    null
+  );
   const [mode, setMode] = useState<"draw" | "upload">("draw");
   const [position, setPosition] = useState<Position>(DEFAULT_POSITION);
   const [saving, setSaving] = useState(false);
@@ -161,6 +223,7 @@ export default function SignPdfDialog({
     setOpen(false);
     setLoading(false);
     setSignatureUrl(null);
+    setStamp(null);
     setError(null);
     setLoadError(null);
     setPosition(DEFAULT_POSITION);
@@ -404,11 +467,17 @@ export default function SignPdfDialog({
     const canvas = padRef.current;
     if (!canvas) return;
     const url = trimCanvas(canvas);
-    if (url) {
-      setSignatureUrl(url);
-      setSignatureAspect(2.6);
-      setPosition(DEFAULT_POSITION);
-    }
+    if (!url) return;
+    setStamp(null);
+    setSignatureUrl(url);
+    setPosition(DEFAULT_POSITION);
+    // Honour the real proportions of the drawn strokes instead of guessing.
+    const probe = new Image();
+    probe.onload = () =>
+      setSignatureAspect(
+        probe.naturalWidth / Math.max(1, probe.naturalHeight)
+      );
+    probe.src = url;
   };
 
   const clearPad = () => {
@@ -419,6 +488,7 @@ export default function SignPdfDialog({
       setupPad();
     }
     setSignatureUrl(null);
+    setStamp(null);
   };
 
   /* ---------- uploaded signature ---------- */
@@ -436,6 +506,7 @@ export default function SignPdfDialog({
       const image = new Image();
       image.onload = () => {
         setSignatureAspect(image.width / Math.max(1, image.height));
+        setStamp(null);
         setSignatureUrl(url);
         setPosition(DEFAULT_POSITION);
         setError(null);
@@ -444,6 +515,31 @@ export default function SignPdfDialog({
     };
     reader.readAsDataURL(file);
   };
+
+  /* ---------- compose signature + printed name ---------- */
+
+  useEffect(() => {
+    if (!signatureUrl) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      buildStamp(signatureUrl, signatureAspect, signName.trim(), signRole.trim())
+        .then((result) => {
+          if (!cancelled) setStamp(result);
+        })
+        .catch(() => {
+          if (!cancelled) setStamp({ url: signatureUrl, aspect: signatureAspect });
+        });
+    }, 120);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [signatureUrl, signatureAspect, signName, signRole]);
+
+  const stampUrl = stamp?.url ?? signatureUrl;
+  const stampAspect = stamp?.aspect ?? signatureAspect;
 
   /* ---------- keep the stamp in view (important on phones) ---------- */
 
@@ -535,7 +631,7 @@ export default function SignPdfDialog({
   /* ---------- save ---------- */
 
   const save = async () => {
-    if (!signatureUrl) {
+    if (!signatureUrl || !stampUrl) {
       setError("Tambahkan tanda tangan terlebih dahulu.");
       return;
     }
@@ -550,7 +646,7 @@ export default function SignPdfDialog({
     setError(null);
 
     try {
-      const blob = await (await fetch(signatureUrl)).blob();
+      const blob = await (await fetch(stampUrl)).blob();
       const form = new FormData();
       form.set("signature", new File([blob], "tanda-tangan.png", { type: "image/png" }));
       form.set("page", String(pageIndex));
@@ -675,7 +771,7 @@ export default function SignPdfDialog({
                         )
                       )}
 
-                      {signatureUrl && (
+                      {signatureUrl && stampUrl && (
                         <div
                           ref={overlayRef}
                           className="sign-overlay"
@@ -683,11 +779,11 @@ export default function SignPdfDialog({
                             left: `${position.x}%`,
                             top: `${position.y}%`,
                             width: `${position.w}%`,
-                            aspectRatio: String(signatureAspect),
+                            aspectRatio: String(stampAspect),
                           }}
                           onPointerDown={beginDrag}
                         >
-                          <img src={signatureUrl} alt="Posisi tanda tangan" />
+                          <img src={stampUrl} alt="Posisi tanda tangan" />
                           <span
                             className="sign-handle"
                             onPointerDown={beginResize}
@@ -848,10 +944,37 @@ export default function SignPdfDialog({
                     </>
                   )}
 
-                  {signatureUrl && (
+                  <div className="sign-caption">
+                    <div className="sign-caption-head">
+                      <span>Keterangan di bawah tanda tangan</span>
+                      <span className="sign-caption-tag">opsional</span>
+                    </div>
+                    <input
+                      className="input"
+                      value={signName}
+                      onChange={(event) => setSignName(event.target.value)}
+                      placeholder="Nama penanda tangan"
+                      maxLength={60}
+                      aria-label="Nama penanda tangan"
+                    />
+                    <input
+                      className="input"
+                      value={signRole}
+                      onChange={(event) => setSignRole(event.target.value)}
+                      placeholder="Jabatan (mis. Kepala Dusun Permata Anyar)"
+                      maxLength={80}
+                      aria-label="Jabatan penanda tangan"
+                    />
+                    <p className="sign-hint">
+                      Teks ini ikut tercetak di bawah tanda tangan Anda. Kosongkan
+                      bila tidak diperlukan.
+                    </p>
+                  </div>
+
+                  {signatureUrl && stampUrl && (
                     <div className="sign-preview-thumb">
                       <span className="muted">Pratinjau tanda tangan</span>
-                      <img src={signatureUrl} alt="Pratinjau tanda tangan" />
+                      <img src={stampUrl} alt="Pratinjau tanda tangan" />
                     </div>
                   )}
 
